@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f1117">
+<title>🥦 FoodPlan — Planejador Semanal Inteligente</title>
+<style>
+/* ════════════════════════════ TOKENS ════════════════════════════ */
+:root {
+  --bg:#0f1117; --bg2:#181c24; --bg3:#1f2430; --border:#2a2f3e;
+  --text:#e8ecf4; --text2:#8a92a8; --text3:#545c70;
+  --green:#4ade80; --teal:#2dd4bf; --amber:#fbbf24;
+  --red:#f87171; --purple:#a78bfa; --blue:#60a5fa; --orange:#fb923c;
+  --radius:12px; --radius-sm:8px;
+  --shadow:0 4px 24px rgba(0,0,0,.4); --transition:.18s ease;
+}
+[data-theme="light"] {
+  --bg:#f0f4f0; --bg2:#fff; --bg3:#e8f0e8; --border:#d0dbd0;
+  --text:#1a2012; --text2:#4a5a40; --text3:#8a9a80;
+  --shadow:0 4px 24px rgba(0,0,0,.1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit;color:var(--text)}
+
+/* ════════════════════════════ LAYOUT ════════════════════════════ */
+#app{display:flex;flex-direction:column;min-height:100vh}
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{font-size:22px}
+.logo-text{font-size:17px;font-weight:700;letter-spacing:-.5px}
+.logo-text span{color:var(--green)}
+.header-actions{display:flex;gap:8px;align-items:center}
+.nav{background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.nav-inner{display:flex;padding:0 12px;min-width:max-content}
+.nav-tab{padding:11px 14px;background:none;border:none;color:var(--text2);font-size:13px;font-weight:500;border-bottom:2px solid transparent;transition:var(--transition);white-space:nowrap;display:flex;align-items:center;gap:5px}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--green);border-bottom-color:var(--green)}
+.main{flex:1;padding:20px;max-width:1100px;margin:0 auto;width:100%}
+.panel{display:none}
+.panel.active{display:block}
+
+/* ════════════════════════════ CARDS ════════════════════════════ */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px}
+.card-title{font-size:14px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:600px){.g2,.g3{grid-template-columns:1fr}}
+
+/* ════════════════════════════ FORM ════════════════════════════ */
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.field input,.field select,.field textarea{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 11px;font-size:14px;outline:none;transition:var(--transition)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(74,222,128,.12)}
+.field textarea{resize:vertical;min-height:80px}
+
+/* ════════════════════════════ BUTTONS ════════════════════════════ */
+.btn{padding:8px 15px;border-radius:var(--radius-sm);border:none;font-size:13px;font-weight:600;transition:var(--transition);display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--green);color:#0f1117}
+.btn-primary:hover{background:#22c55e}
+.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--green);color:var(--green)}
+.btn-danger{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.25)}
+.btn-danger:hover{background:rgba(248,113,113,.22)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-icon{padding:7px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);display:inline-flex;align-items:center}
+.btn-icon:hover{color:var(--text);border-color:var(--text3)}
+.btn-generate{width:100%;padding:17px;background:linear-gradient(135deg,#4ade80,#22c55e);color:#0a1a0a;border:none;border-radius:var(--radius);font-size:16px;font-weight:800;letter-spacing:-.2px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:var(--transition);box-shadow:0 4px 20px rgba(74,222,128,.25)}
+.btn-generate:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(74,222,128,.38)}
+.btn-generate:disabled{opacity:.6;transform:none;cursor:wait}
+
+/* ════════════════════════════ BADGES ════════════════════════════ */
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:600}
+.bg{background:rgba(74,222,128,.14);color:var(--green)}
+.ba{background:rgba(251,191,36,.14);color:var(--amber)}
+.br{background:rgba(248,113,113,.14);color:var(--red)}
+.bb{background:rgba(96,165,250,.14);color:var(--blue)}
+.bp{background:rgba(167,139,250,.14);color:var(--purple)}
+.bt{background:rgba(45,212,191,.14);color:var(--teal)}
+
+/* ════════════════════════════ SECTION ════════════════════════════ */
+.sh{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px}
+.sh-actions{display:flex;gap:8px;flex-shrink:0}
+.st{font-size:18px;font-weight:700}
+.ss{font-size:13px;color:var(--text2);margin-top:2px}
+
+/* ════════════════════════════ TABLE ════════════════════════════ */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:9px 11px;border-bottom:1px solid var(--border);color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase}
+td{padding:9px 11px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ════════════════════════════ ITEM ROW ════════════════════════════ */
+.ir{display:flex;align-items:center;gap:8px;padding:8px 11px;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:5px}
+.ir .iname{flex:1;font-size:14px}
+.ir .iqty{font-size:13px;color:var(--text2);min-width:70px}
+
+/* ════════════════════════════ TAGS ════════════════════════════ */
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500;background:var(--bg3);color:var(--text2);border:1px solid var(--border);cursor:pointer;transition:var(--transition);user-select:none}
+.tag.active{background:rgba(74,222,128,.14);color:var(--green);border-color:var(--green)}
+.tag.blocked{background:rgba(248,113,113,.14);color:var(--red);border-color:var(--red)}
+
+/* ════════════════════════════ STATS ════════════════════════════ */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center}
+.stat-val{font-size:26px;font-weight:800;color:var(--green)}
+.stat-label{font-size:12px;color:var(--text2);margin-top:3px}
+
+/* ════════════════════════════ PROGRESS ════════════════════════════ */
+.pb{height:6px;border-radius:3px;background:var(--bg3);overflow:hidden;margin-top:7px}
+.pf{height:100%;border-radius:3px;background:var(--green);transition:width .5s ease}
+
+/* ════════════════════════════ TOGGLE ════════════════════════════ */
+.tw2{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.toggle{position:relative;width:38px;height:21px;flex-shrink:0}
+.toggle input{display:none}
+.tslider{position:absolute;inset:0;background:var(--bg3);border:1px solid var(--border);border-radius:11px;cursor:pointer;transition:var(--transition)}
+.tslider::after{content:'';position:absolute;width:15px;height:15px;background:var(--text2);border-radius:50%;top:2px;left:2px;transition:var(--transition)}
+.toggle input:checked+.tslider{background:rgba(74,222,128,.18);border-color:var(--green)}
+.toggle input:checked+.tslider::after{background:var(--green);transform:translateX(17px)}
+
+/* ════════════════════════════ MODAL ════════════════════════════ */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px;opacity:0;pointer-events:none;transition:var(--transition)}
+.mo.open{opacity:1;pointer-events:all}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:22px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;transform:scale(.95);transition:var(--transition)}
+.mo.open .modal{transform:scale(1)}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.mt2{font-size:16px;font-weight:700}
+
+/* ════════════════════════════ WEEK VISUAL ════════════════════════════ */
+.wv{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:14px}
+.dc{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 7px;text-align:center;position:relative}
+.dc.today{border-color:var(--green);background:rgba(74,222,128,.06)}
+.dn{font-size:10px;text-transform:uppercase;color:var(--text3);font-weight:700;letter-spacing:.5px}
+.dm{font-size:11px;color:var(--text);margin-top:5px;font-weight:500;line-height:1.3}
+.dmm{font-size:10px;color:var(--green);margin-top:3px}
+.dc-edit{position:absolute;top:4px;right:4px;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;opacity:0;transition:var(--transition);padding:2px}
+.dc:hover .dc-edit{opacity:1}
+@media(max-width:700px){.wv{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:480px){.wv{grid-template-columns:repeat(2,1fr)}}
+
+/* ════════════════════════════ PREF ════════════════════════════ */
+.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.pc{background:var(--bg3);border:2px solid var(--border);border-radius:var(--radius-sm);padding:12px;cursor:pointer;transition:var(--transition);text-align:center}
+.pc:hover{border-color:var(--text3)}
+.pc.active{border-color:var(--green);background:rgba(74,222,128,.07)}
+.pi{font-size:22px}
+.pl{font-size:12px;font-weight:600;margin-top:4px;color:var(--text2)}
+.pc.active .pl{color:var(--green)}
+
+/* ════════════════════════════ SHOP LIST ════════════════════════════ */
+.sc{margin-bottom:18px}
+.sct{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:1px;margin-bottom:7px;display:flex;align-items:center;gap:5px}
+.si{display:flex;align-items:center;gap:11px;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:5px;transition:var(--transition)}
+.si.checked{opacity:.45}
+.si.checked .sin{text-decoration:line-through}
+.si input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;flex-shrink:0;cursor:pointer}
+.sin{flex:1;font-size:13px}
+.siq{font-size:14px;font-weight:700;color:var(--green);min-width:70px;text-align:right}
+.sip{font-size:12px;color:var(--text2);min-width:55px;text-align:right}
+
+/* ════════════════════════════ RECIPE GRID ════════════════════════════ */
+.rg{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:11px}
+.rc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;transition:var(--transition)}
+.rc:hover{border-color:var(--text3)}
+.rn{font-size:14px;font-weight:600;margin-bottom:6px}
+.rm{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px}
+.ri{font-size:12px;color:var(--text2);line-height:1.6}
+
+/* ════════════════════════════ EMPTY ════════════════════════════ */
+.empty{text-align:center;padding:44px 16px;color:var(--text3)}
+.empty .ei{font-size:44px;margin-bottom:11px}
+.empty .et{font-size:15px;font-weight:600;color:var(--text2);margin-bottom:5px}
+.empty .ed{font-size:13px}
+
+/* ════════════════════════════ ALERT ════════════════════════════ */
+.alert{padding:11px 14px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:11px;display:flex;align-items:flex-start;gap:9px}
+.ai{background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.28);color:var(--blue)}
+.as{background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.28);color:var(--green)}
+.aw{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.28);color:var(--amber)}
+
+/* ════════════════════════════ PRICES TABLE ════════════════════════════ */
+.price-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.price-item{display:flex;align-items:center;gap:8px;background:var(--bg3);border-radius:var(--radius-sm);padding:8px 11px}
+.price-name{flex:1;font-size:13px}
+.price-input{width:70px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:4px 7px;font-size:13px;color:var(--text);text-align:right;outline:none}
+.price-input:focus{border-color:var(--green)}
+.price-unit{font-size:11px;color:var(--text3);min-width:28px}
+
+/* ════════════════════════════ HISTORY ════════════════════════════ */
+.hist-week{background:var(--bg3);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px}
+.hist-date{font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:600}
+.hist-meals{display:flex;flex-wrap:wrap;gap:5px}
+
+/* ════════════════════════════ GENERATING OVERLAY ════════════════════════════ */
+#gen-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#gen-overlay.show{display:flex}
+.gen-spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gen-text{color:var(--text);font-size:15px;font-weight:600}
+.gen-step{color:var(--text2);font-size:13px}
+
+/* ════════════════════════════ UTILS ════════════════════════════ */
+.flex{display:flex} .col{flex-direction:column} .center{align-items:center} .between{justify-content:space-between}
+.g8{gap:8px} .g12{gap:12px}
+.mt8{margin-top:8px} .mt12{margin-top:12px} .mt16{margin-top:16px}
+.mb8{margin-bottom:8px} .mb12{margin-bottom:12px}
+.sm{font-size:12px} .muted{color:var(--text2)} .bold{font-weight:700} .green{color:var(--green)} .red{color:var(--red)} .amber{color:var(--amber)}
+hr{border:none;border-top:1px solid var(--border);margin:14px 0}
+
+/* ════════════════════════════ PRINT ════════════════════════════ */
+@media print{
+  .header,.nav,.btn,.no-print,#gen-overlay{display:none!important}
+  .main{padding:0;max-width:100%}
+  .card{border:1px solid #ccc;page-break-inside:avoid;margin-bottom:10px}
+  .panel{display:block!important}
+  body{background:#fff;color:#000}
+  :root{--bg:#fff;--bg2:#fff;--bg3:#f5f5f5;--border:#ddd;--text:#000;--text2:#444;--text3:#888}
+}
+
+/* ════════════════════════════ SCROLLBAR ════════════════════════════ */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ════════════════════════════ ANIM ════════════════════════════ */
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.ai2{animation:fadeIn .22s ease forwards}
+
+/* ════════════════════════════ RECIPE DETAIL ════════════════════════════ */
+.ing-row{display:flex;gap:8px;align-items:center;margin-bottom:5px}
+.ing-row input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:13px;color:var(--text);outline:none}
+.ing-row input:focus{border-color:var(--green)}
+.ing-row select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:13px;color:var(--text);outline:none}
+
+/* ════ MOBILE / CAPACITOR ════ */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+.header {
+  padding-top: calc(14px + var(--safe-top));
+}
+.main {
+  padding-bottom: calc(20px + var(--safe-bottom));
+}
+/* Bigger tap targets on mobile */
+@media (max-width: 480px) {
+  .btn { padding: 10px 14px; font-size: 14px; }
+  .nav-tab { padding: 13px 12px; font-size: 12px; }
+  .btn-generate { padding: 20px; font-size: 15px; }
+  .field input, .field select { padding: 11px 12px; font-size: 16px; } /* 16px prevents iOS zoom */
+  td, th { padding: 8px 8px; font-size: 12px; }
+  .stat-val { font-size: 22px; }
+  .modal { padding: 18px; }
+  .dc { padding: 10px 5px; }
+  .dm { font-size: 10px; }
+}
+/* Prevent text size adjustment */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* Smooth scrolling */
+* { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- GENERATING OVERLAY -->
+<div id="gen-overlay">
+  <div class="gen-spinner"></div>
+  <div class="gen-text" id="gen-text">Gerando cardápio…</div>
+  <div class="gen-step" id="gen-step">Analisando estoque…</div>
+</div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <span class="logo-icon">🥦</span>
+    <span class="logo-text">Food<span>Plan</span></span>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-secondary btn-sm no-print" onclick="printPlan()">🖨️ Imprimir</button>
+    <button class="btn-icon no-print" onclick="toggleTheme()" title="Alternar tema">🌙</button>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <button class="nav-tab active" data-tab="config"     onclick="go('config')">⚙️ Config</button>
+    <button class="nav-tab"        data-tab="estoque"    onclick="go('estoque')">📦 Estoque</button>
+    <button class="nav-tab"        data-tab="promocoes"  onclick="go('promocoes')">🏷️ Promoções</button>
+    <button class="nav-tab"        data-tab="precos"     onclick="go('precos')">💰 Preços</button>
+    <button class="nav-tab"        data-tab="preferencias" onclick="go('preferencias')">🎯 Preferências</button>
+    <button class="nav-tab"        data-tab="receitas"   onclick="go('receitas')">📖 Receitas</button>
+    <button class="nav-tab"        data-tab="plano"      onclick="go('plano')">📅 Plano</button>
+    <button class="nav-tab"        data-tab="compras"    onclick="go('compras')">🛒 Compras</button>
+    <button class="nav-tab"        data-tab="historico"  onclick="go('historico')">🕐 Histórico</button>
+    <button class="nav-tab"        data-tab="dashboard"  onclick="go('dashboard')">📊 Dashboard</button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- ═══ CONFIG ═══ -->
+<div class="panel active" id="panel-config">
+  <div class="sh">
+    <div><div class="st">Configurações da Casa</div><div class="ss">Perfil do seu lar para planejamento personalizado</div></div>
+    <button class="btn btn-primary" onclick="saveConfig()">💾 Salvar</button>
+  </div>
+  <div class="card">
+    <div class="card-title">🏠 Moradores e Refeições</div>
+    <div class="g3">
+      <div class="field"><label>Moradores</label><input type="number" id="cfg-moradores" value="2" min="1" max="20"></div>
+      <div class="field"><label>Dias a planejar</label><input type="number" id="cfg-dias" value="7" min="1" max="14"></div>
+      <div class="field"><label>Marmitas por dia</label><input type="number" id="cfg-marmitas" value="2" min="0" max="10"></div>
+      <div class="field">
+        <label>Refeições por dia</label>
+        <select id="cfg-refeicoes">
+          <option value="1">1 — Só jantar</option>
+          <option value="2" selected>2 — Almoço + Jantar</option>
+          <option value="3">3 — Café, Almoço e Jantar</option>
+        </select>
+      </div>
+      <div class="field"><label>Orçamento semanal (R$)</label><input type="number" id="cfg-orcamento" value="250" min="0" step="10"></div>
+      <div class="field"><label>Custo médio delivery (R$)</label><input type="number" id="cfg-delivery" value="60" min="0" step="5"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">🔧 Geração</div>
+    <div class="g2">
+      <div class="field"><label>Porções base por receita</label><input type="number" id="cfg-porcoes" value="4" min="2" max="12"></div>
+      <div class="field"><label>Máx. mesma proteína / semana</label><input type="number" id="cfg-max-proteina" value="3" min="1" max="7"></div>
+    </div>
+    <div class="mt12">
+      <div class="tw2"><label class="toggle"><input type="checkbox" id="cfg-frutas" checked><span class="tslider"></span></label><span style="font-size:14px">Incluir planejamento de frutas</span></div>
+      <div class="tw2"><label class="toggle"><input type="checkbox" id="cfg-variar" checked><span class="tslider"></span></label><span style="font-size:14px">Evitar repetição em dias consecutivos</span></div>
+      <div class="tw2"><label class="toggle"><input type="checkbox" id="cfg-no-massa-twice" checked><span class="tslider"></span></label><span style="font-size:14px">Nunca duas massas seguidas</span></div>
+    </div>
+  </div>
+  <div class="alert ai">ℹ️ <span>Padrão: 2 moradores, jantar rende para o casal + 2 quentinhas = ~4 porções/noite.</span></div>
+</div>
+
+<!-- ═══ ESTOQUE ═══ -->
+<div class="panel" id="panel-estoque">
+  <div class="sh">
+    <div><div class="st">Estoque Atual</div><div class="ss">O que você já tem em casa</div></div>
+    <div class="sh-actions">
+      <button class="btn btn-secondary btn-sm" onclick="clearEstoque()">🗑️ Limpar</button>
+      <button class="btn btn-primary" onclick="openM('m-estoque')">+ Adicionar</button>
+    </div>
+  </div>
+  <div id="estoque-list"></div>
+</div>
+
+<!-- ═══ PROMOÇÕES ═══ -->
+<div class="panel" id="panel-promocoes">
+  <div class="sh">
+    <div><div class="st">Promoções da Semana</div><div class="ss">Itens em oferta ganham prioridade no cardápio</div></div>
+    <button class="btn btn-primary" onclick="openM('m-prom')">+ Adicionar</button>
+  </div>
+  <div id="promo-list"></div>
+</div>
+
+<!-- ═══ PREÇOS ═══ -->
+<div class="panel" id="panel-precos">
+  <div class="sh">
+    <div><div class="st">Tabela de Preços</div><div class="ss">Edite os preços dos ingredientes para seu mercado local</div></div>
+    <button class="btn btn-primary" onclick="savePrecos()">💾 Salvar Preços</button>
+  </div>
+  <div class="alert ai">ℹ️ <span>Preços em R$/kg (ou R$/un para ovos e itens avulsos). Usado para calcular o custo estimado da lista de compras.</span></div>
+  <div class="card">
+    <div class="price-grid" id="price-grid"></div>
+  </div>
+</div>
+
+<!-- ═══ PREFERÊNCIAS ═══ -->
+<div class="panel" id="panel-preferencias">
+  <div class="sh">
+    <div><div class="st">Preferências Alimentares</div><div class="ss">Personalize o cardápio ao seu estilo</div></div>
+    <button class="btn btn-primary" onclick="savePrefs()">💾 Salvar</button>
+  </div>
+  <div class="card">
+    <div class="card-title">🍽️ Estilo Alimentar</div>
+    <div class="pg" id="pref-estilo">
+      <div class="pc active" data-v="tudo"        onclick="selEstilo(this)"><div class="pi">🍖</div><div class="pl">Come de Tudo</div></div>
+      <div class="pc"        data-v="economico"   onclick="selEstilo(this)"><div class="pi">💰</div><div class="pl">Econômico</div></div>
+      <div class="pc"        data-v="proteina"    onclick="selEstilo(this)"><div class="pi">💪</div><div class="pl">Alta Proteína</div></div>
+      <div class="pc"        data-v="vegetariano" onclick="selEstilo(this)"><div class="pi">🥦</div><div class="pl">Vegetariano</div></div>
+      <div class="pc"        data-v="lowcarb"     onclick="selEstilo(this)"><div class="pi">🥑</div><div class="pl">Low Carb</div></div>
+      <div class="pc"        data-v="equilibrado" onclick="selEstilo(this)"><div class="pi">⚖️</div><div class="pl">Equilibrado</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">🚫 Alimentos Bloqueados</div>
+    <div class="muted sm mb8">Esses alimentos nunca aparecerão no cardápio.</div>
+    <div class="tags" id="blocked-tags"></div>
+    <div class="flex g8 mt12">
+      <div class="field" style="flex:1"><input type="text" id="blocked-in" placeholder="Ex: fígado, quiabo…" onkeydown="if(event.key==='Enter')addBlocked()"></div>
+      <button class="btn btn-secondary" onclick="addBlocked()">+ Bloquear</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RECEITAS ═══ -->
+<div class="panel" id="panel-receitas">
+  <div class="sh">
+    <div><div class="st">Banco de Receitas</div><div class="ss">Receitas usadas no planejamento</div></div>
+    <div class="sh-actions">
+      <button class="btn btn-secondary btn-sm" onclick="resetReceitas()">↺ Restaurar padrão</button>
+      <button class="btn btn-primary" onclick="openM('m-receita')">+ Nova Receita</button>
+    </div>
+  </div>
+  <div class="rg" id="receitas-grid"></div>
+</div>
+
+<!-- ═══ PLANO ═══ -->
+<div class="panel" id="panel-plano">
+  <div class="sh">
+    <div><div class="st">Plano Semanal</div><div class="ss">Cardápio gerado automaticamente</div></div>
+    <div class="sh-actions">
+      <button class="btn btn-secondary btn-sm" id="btn-sobras" style="display:none" onclick="openM('m-sobras')">♻️ Registrar Sobras</button>
+      <button class="btn btn-secondary btn-sm" onclick="go('compras')">🛒 Ver Compras</button>
+    </div>
+  </div>
+  <button class="btn-generate" id="btn-gen" onclick="generateWeek()">✨ Gerar Semana Inteligente</button>
+  <div id="plano-empty" class="empty mt12">
+    <div class="ei">📅</div><div class="et">Nenhum cardápio gerado ainda</div>
+    <div class="ed">Configure seus dados e clique em "Gerar Semana".</div>
+  </div>
+  <div id="plano-content" style="display:none">
+    <div class="wv" id="week-visual"></div>
+    <div class="card mt12">
+      <div class="card-title">📋 Cardápio Detalhado</div>
+      <div class="tw"><table>
+        <thead><tr><th>Dia</th><th>Receita</th><th>Categoria</th><th>Porções</th><th>Quentinhas</th><th class="no-print">Ação</th></tr></thead>
+        <tbody id="plano-tbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ COMPRAS ═══ -->
+<div class="panel" id="panel-compras">
+  <div class="sh">
+    <div><div class="st">Lista de Compras</div><div class="ss">Calculada descontando o estoque atual</div></div>
+    <div class="sh-actions">
+      <button class="btn btn-secondary btn-sm" onclick="clearChecked()">Limpar marcados</button>
+      <button class="btn btn-primary btn-sm" onclick="printPlan()">🖨️ Imprimir</button>
+    </div>
+  </div>
+  <div id="compras-empty" class="empty">
+    <div class="ei">🛒</div><div class="et">Lista vazia</div><div class="ed">Gere o plano semanal primeiro.</div>
+  </div>
+  <div id="compras-content" style="display:none">
+    <div class="card">
+      <div class="flex center between mb8">
+        <span class="bold">Total estimado</span>
+        <span id="c-total" class="green bold" style="font-size:20px">R$ 0,00</span>
+      </div>
+      <div class="pb"><div class="pf" id="orc-bar" style="width:0"></div></div>
+      <div class="sm muted mt8" id="orc-label"></div>
+    </div>
+    <div id="compras-list"></div>
+  </div>
+</div>
+
+<!-- ═══ HISTÓRICO ═══ -->
+<div class="panel" id="panel-historico">
+  <div class="sh">
+    <div><div class="st">Histórico Semanal</div><div class="ss">Semanas planejadas anteriormente</div></div>
+    <button class="btn btn-danger btn-sm" onclick="clearHistorico()">🗑️ Limpar histórico</button>
+  </div>
+  <div id="hist-content"></div>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div class="panel" id="panel-dashboard">
+  <div class="sh"><div><div class="st">Dashboard</div><div class="ss">Resumo e economia da semana</div></div></div>
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card"><div class="stat-val" id="s-ref">0</div><div class="stat-label">Refeições planejadas</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-mar">0</div><div class="stat-label">Marmitas geradas</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-cus">R$ 0</div><div class="stat-label">Custo estimado</div></div>
+    <div class="stat-card"><div class="stat-val green" id="s-eco">R$ 0</div><div class="stat-label">Economia vs delivery</div></div>
+    <div class="stat-card"><div class="stat-val amber" id="s-apr">0%</div><div class="stat-label">Aproveitamento estoque</div></div>
+    <div class="stat-card"><div class="stat-val green" id="s-des">0 kg</div><div class="stat-label">Desperdício evitado</div></div>
+  </div>
+  <div class="card mt12">
+    <div class="card-title">🥩 Distribuição de Proteínas</div>
+    <div id="prot-chart"></div>
+  </div>
+  <div class="card mt12">
+    <div class="card-title">🌿 Distribuição por Corredor</div>
+    <div id="corredor-chart"></div>
+  </div>
+  <div class="card mt12">
+    <div class="card-title">💡 Dicas da Semana</div>
+    <div id="dicas-list"></div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- ══════════════════ MODAIS ══════════════════ -->
+
+<!-- Estoque -->
+<div class="mo" id="m-estoque">
+  <div class="modal">
+    <div class="mh"><div class="mt2">📦 Adicionar ao Estoque</div><button class="btn-icon" onclick="closeM('m-estoque')">✕</button></div>
+    <div class="field mb8"><label>Item</label><input type="text" id="e-nome" placeholder="Ex: Frango, Arroz…" list="ing-suggestions"><datalist id="ing-suggestions"></datalist></div>
+    <div class="g2">
+      <div class="field"><label>Quantidade</label><input type="number" id="e-qty" value="1" min="0" step="0.1"></div>
+      <div class="field"><label>Unidade</label>
+        <select id="e-unit">
+          <option value="kg">kg</option><option value="g">g</option><option value="L">L</option>
+          <option value="ml">ml</option><option value="un">un</option><option value="cx">cx</option>
+          <option value="pct">pct</option><option value="dz">dz</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex g8 mt12">
+      <button class="btn btn-primary" style="flex:1" onclick="addEstoque()">Adicionar</button>
+      <button class="btn btn-secondary" onclick="closeM('m-estoque')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Promoção -->
+<div class="mo" id="m-prom">
+  <div class="modal">
+    <div class="mh"><div class="mt2">🏷️ Adicionar Promoção</div><button class="btn-icon" onclick="closeM('m-prom')">✕</button></div>
+    <div class="field mb8"><label>Item em promoção</label><input type="text" id="p-nome" placeholder="Ex: Frango, Banana…"></div>
+    <div class="g2">
+      <div class="field"><label>Preço normal (R$)</label><input type="number" id="p-normal" placeholder="0.00" step="0.01" min="0"></div>
+      <div class="field"><label>Preço promoção (R$)</label><input type="number" id="p-preco" placeholder="0.00" step="0.01" min="0"></div>
+    </div>
+    <div class="flex g8 mt12">
+      <button class="btn btn-primary" style="flex:1" onclick="addProm()">Adicionar</button>
+      <button class="btn btn-secondary" onclick="closeM('m-prom')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Receita -->
+<div class="mo" id="m-receita">
+  <div class="modal">
+    <div class="mh"><div class="mt2" id="rec-modal-title">📖 Nova Receita</div><button class="btn-icon" onclick="closeM('m-receita')">✕</button></div>
+    <div class="field mb8"><label>Nome</label><input type="text" id="r-nome" placeholder="Ex: Frango grelhado com legumes"></div>
+    <div class="g2 mb8">
+      <div class="field"><label>Categoria</label>
+        <select id="r-cat">
+          <option value="proteina">🥩 Proteína</option><option value="massa">🍝 Massa</option>
+          <option value="vegetariana">🥦 Vegetariana</option><option value="economica">💰 Econômica</option>
+          <option value="fit">💪 Fit</option><option value="sopa">🍲 Sopa</option>
+        </select>
+      </div>
+      <div class="field"><label>Porções geradas</label><input type="number" id="r-porcoes" value="4" min="1" max="20"></div>
+    </div>
+    <div class="field mb8"><label>Proteína principal</label>
+        <select id="r-proteina">
+          <option value="frango">Frango</option><option value="carne">Carne bovina</option>
+          <option value="peixe">Peixe</option><option value="ovo">Ovo</option>
+          <option value="vegetal">Vegetal/Leguminosa</option><option value="nenhuma">Sem proteína animal</option>
+        </select>
+    </div>
+    <div class="card-title mt8">Ingredientes</div>
+    <div class="muted sm mb8">Só o nome — o sistema calcula as quantidades na hora de gerar a semana.</div>
+    <div id="ing-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+    <div class="flex g8">
+      <input type="text" id="ing-add-input" placeholder="Digite e pressione Enter ou +" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:14px;color:var(--text);outline:none" onkeydown="if(event.key==='Enter'){event.preventDefault();addIngTag()}">
+      <button class="btn btn-secondary btn-sm" onclick="addIngTag()">+ Adicionar</button>
+    </div>
+    <div class="flex g8 mt12">
+      <button class="btn btn-primary" style="flex:1" onclick="saveReceita()">Salvar Receita</button>
+      <button class="btn btn-secondary" onclick="closeM('m-receita')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Trocar dia -->
+<div class="mo" id="m-troca">
+  <div class="modal">
+    <div class="mh"><div class="mt2" id="troca-title">Trocar refeição</div><button class="btn-icon" onclick="closeM('m-troca')">✕</button></div>
+    <p class="muted sm mb8">Escolha outra receita para este dia:</p>
+    <div id="troca-list" style="max-height:360px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- Sobras -->
+<div class="mo" id="m-sobras">
+  <div class="modal">
+    <div class="mh"><div class="mt2">♻️ Registrar Sobras</div><button class="btn-icon" onclick="closeM('m-sobras')">✕</button></div>
+    <p class="muted sm mb8">Informe o que sobrou — voltará automaticamente ao estoque.</p>
+    <div id="sobras-form"></div>
+    <div class="flex g8 mt12">
+      <button class="btn btn-primary" style="flex:1" onclick="saveSobras()">♻️ Devolver ao Estoque</button>
+      <button class="btn btn-secondary" onclick="closeM('m-sobras')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+const S = {
+  config: {
+    moradores:2, dias:7, marmitas:2, refeicoes:2,
+    orcamento:250, delivery:60, porcoes:4,
+    max_proteina:3, frutas:true, variar:true, no_massa_twice:true
+  },
+  estoque: [],
+  promocoes: [],
+  prefs: { estilo:'tudo', blocked:[] },
+  receitas: [],
+  plano: [],
+  compras: [],
+  precos: {},
+  historico: [],
+  editingRecipe: null
+};
+
+// ════════════════════════════════════════════════════════
+// DEFAULT RECIPES — comida caseira, legumes e vegetais no centro
+// ════════════════════════════════════════════════════════
+const DR = [
+
+  // ── ARROZ + FEIJÃO + PROTEÍNA + LEGUME ──
+
+  { id:'r1', nome:'Arroz, Feijão, Frango Grelhado e Brócolis', cat:'proteina', proteina:'frango', porcoes:4, custo:10,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'feijão',q:280,u:'g'},{n:'frango',q:560,u:'g'},{n:'brócolis',q:300,u:'g'},{n:'alho',q:15,u:'g'},{n:'azeite',q:20,u:'ml'}] },
+
+  { id:'r2', nome:'Arroz, Feijão, Frango e Couve Refogada', cat:'proteina', proteina:'frango', porcoes:4, custo:9,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'feijão',q:280,u:'g'},{n:'frango',q:560,u:'g'},{n:'couve',q:200,u:'g'},{n:'alho',q:15,u:'g'},{n:'azeite',q:20,u:'ml'}] },
+
+  { id:'r3', nome:'Arroz, Feijão, Frango e Couve-Flor', cat:'proteina', proteina:'frango', porcoes:4, custo:10,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'feijão',q:280,u:'g'},{n:'frango',q:560,u:'g'},{n:'couve-flor',q:350,u:'g'},{n:'alho',q:15,u:'g'},{n:'azeite',q:20,u:'ml'}] },
+
+  { id:'r4', nome:'Arroz, Feijão, Frango e Quiabo', cat:'proteina', proteina:'frango', porcoes:4, custo:10,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'feijão',q:280,u:'g'},{n:'frango',q:560,u:'g'},{n:'quiabo',q:300,u:'g'},{n:'cebola',q:80,u:'g'},{n:'alho',q:15,u:'g'}] },
+
+  { id:'r5', nome:'Arroz, Feijão, Frango e Jiló', cat:'proteina', proteina:'frango', porcoes:4, custo:9,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'feijão',q:280,u:'g'},{n:'frango',q:560,u:'g'},{n:'jiló',q:250,u:'g'},{n:'cebola',q:80,u:'g'},{n:'alho',q:15,u:'g'}] },
+
+  { id:'r6', nome:'Arroz, Feijão, Carne Moída e Cenoura', cat:'proteina', proteina:'carne', porcoes:4, custo:11,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'feijão',q:280,u:'g'},{n:'carne moída',q:480,u:'g'},{n:'cenoura',q:250,u:'g'},{n:'cebola',q:80,u:'g'},{n:'alho',q:15,u:'g'}] },
+
+  { id:'r7', nome:'Arroz, Feijão, Carne Moída e Abobrinha', cat:'proteina', proteina:'carne', porcoes:4, custo:11,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'feijão',q:280,u:'g'},{n:'carne moída',q:480,u:'g'},{n:'abobrinha',q:300,u:'g'},{n:'cebola',q:80,u:'g'},{n:'alho',q:15,u:'g'}] },
+
+  { id:'r8', nome:'Arroz, Feijão, Ovo Frito e Couve', cat:'vegetariana', proteina:'ovo', porcoes:3, custo:5,
+    ings:[{n:'arroz',q:280,u:'g'},{n:'feijão',q:250,u:'g'},{n:'ovos',q:4,u:'un'},{n:'couve',q:200,u:'g'},{n:'alho',q:12,u:'g'},{n:'azeite',q:15,u:'ml'}] },
+
+  { id:'r9', nome:'Arroz, Feijão, Ovo Frito e Farofa', cat:'vegetariana', proteina:'ovo', porcoes:3, custo:5,
+    ings:[{n:'arroz',q:280,u:'g'},{n:'feijão',q:250,u:'g'},{n:'ovos',q:4,u:'un'},{n:'farinha de mandioca',q:150,u:'g'},{n:'cebola',q:80,u:'g'},{n:'manteiga',q:30,u:'g'}] },
+
+  { id:'r10', nome:'Arroz, Feijão, Peixe Grelhado e Salada', cat:'proteina', proteina:'peixe', porcoes:4, custo:14,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'feijão',q:280,u:'g'},{n:'peixe',q:560,u:'g'},{n:'alface',q:1,u:'un'},{n:'tomate',q:150,u:'g'},{n:'limão',q:1,u:'un'}] },
+
+  // ── ARROZ + FEIJÃO + PROTEÍNA + FAROFA ──
+
+  { id:'r11', nome:'Arroz, Feijão, Frango e Farofa de Cebola', cat:'proteina', proteina:'frango', porcoes:4, custo:10,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'feijão',q:280,u:'g'},{n:'frango',q:560,u:'g'},{n:'farinha de mandioca',q:150,u:'g'},{n:'cebola',q:100,u:'g'},{n:'manteiga',q:30,u:'g'}] },
+
+  { id:'r12', nome:'Arroz, Feijão, Carne e Farofa com Ovos', cat:'proteina', proteina:'carne', porcoes:4, custo:12,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'feijão',q:280,u:'g'},{n:'carne moída',q:480,u:'g'},{n:'farinha de mandioca',q:150,u:'g'},{n:'ovos',q:2,u:'un'},{n:'cebola',q:80,u:'g'}] },
+
+  { id:'r13', nome:'Arroz, Feijão, Frango e Farofa de Couve', cat:'proteina', proteina:'frango', porcoes:4, custo:10,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'feijão',q:280,u:'g'},{n:'frango',q:560,u:'g'},{n:'farinha de mandioca',q:150,u:'g'},{n:'couve',q:150,u:'g'},{n:'alho',q:15,u:'g'}] },
+
+  // ── ARROZ + FEIJÃO + PROTEÍNA + SALADA ──
+
+  { id:'r14', nome:'Arroz, Feijão, Frango e Salada Mista', cat:'proteina', proteina:'frango', porcoes:4, custo:10,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'feijão',q:280,u:'g'},{n:'frango',q:560,u:'g'},{n:'alface',q:1,u:'un'},{n:'tomate',q:150,u:'g'},{n:'cenoura',q:100,u:'g'}] },
+
+  { id:'r15', nome:'Arroz, Feijão, Carne e Salada de Folhas', cat:'proteina', proteina:'carne', porcoes:4, custo:11,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'feijão',q:280,u:'g'},{n:'carne moída',q:480,u:'g'},{n:'alface',q:1,u:'un'},{n:'rúcula',q:80,u:'g'},{n:'tomate',q:150,u:'g'}] },
+
+  { id:'r16', nome:'Arroz, Feijão, Frango e Salada de Pepino', cat:'proteina', proteina:'frango', porcoes:4, custo:10,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'feijão',q:280,u:'g'},{n:'frango',q:560,u:'g'},{n:'pepino',q:200,u:'g'},{n:'tomate',q:150,u:'g'},{n:'azeite',q:15,u:'ml'}] },
+
+  // ── MACARRÃO + PROTEÍNA + LEGUME/SALADA ──
+
+  { id:'r17', nome:'Macarrão com Frango e Brócolis', cat:'massa', proteina:'frango', porcoes:4, custo:10,
+    ings:[{n:'macarrão',q:400,u:'g'},{n:'frango',q:480,u:'g'},{n:'brócolis',q:300,u:'g'},{n:'alho',q:20,u:'g'},{n:'azeite',q:25,u:'ml'}] },
+
+  { id:'r18', nome:'Macarrão com Carne Moída e Tomate', cat:'massa', proteina:'carne', porcoes:4, custo:10,
+    ings:[{n:'macarrão',q:400,u:'g'},{n:'carne moída',q:400,u:'g'},{n:'tomate',q:300,u:'g'},{n:'cebola',q:80,u:'g'},{n:'alho',q:15,u:'g'},{n:'azeite',q:20,u:'ml'}] },
+
+  { id:'r19', nome:'Macarrão com Frango e Couve-Flor', cat:'massa', proteina:'frango', porcoes:4, custo:10,
+    ings:[{n:'macarrão',q:400,u:'g'},{n:'frango',q:480,u:'g'},{n:'couve-flor',q:350,u:'g'},{n:'alho',q:20,u:'g'},{n:'azeite',q:25,u:'ml'}] },
+
+  { id:'r20', nome:'Macarrão com Ovo e Abobrinha', cat:'vegetariana', proteina:'ovo', porcoes:4, custo:7,
+    ings:[{n:'macarrão',q:400,u:'g'},{n:'ovos',q:4,u:'un'},{n:'abobrinha',q:300,u:'g'},{n:'alho',q:20,u:'g'},{n:'queijo',q:60,u:'g'},{n:'azeite',q:25,u:'ml'}] },
+
+  { id:'r21', nome:'Macarrão com Peixe e Salada', cat:'massa', proteina:'peixe', porcoes:4, custo:14,
+    ings:[{n:'macarrão',q:400,u:'g'},{n:'peixe',q:480,u:'g'},{n:'alface',q:1,u:'un'},{n:'tomate',q:150,u:'g'},{n:'limão',q:1,u:'un'},{n:'azeite',q:20,u:'ml'}] },
+
+  // ── SÓ SALADA (refeição leve) ──
+
+  { id:'r22', nome:'Salada Completa com Atum e Ovo', cat:'fit', proteina:'peixe', porcoes:3, custo:8,
+    ings:[{n:'alface',q:1,u:'un'},{n:'tomate',q:200,u:'g'},{n:'cenoura',q:150,u:'g'},{n:'atum',q:2,u:'un'},{n:'ovos',q:3,u:'un'},{n:'azeite',q:20,u:'ml'}] },
+
+  { id:'r23', nome:'Salada Mista com Frango Desfiado', cat:'fit', proteina:'frango', porcoes:3, custo:9,
+    ings:[{n:'frango',q:400,u:'g'},{n:'alface',q:1,u:'un'},{n:'rúcula',q:80,u:'g'},{n:'tomate',q:200,u:'g'},{n:'cenoura',q:100,u:'g'},{n:'azeite',q:20,u:'ml'}] },
+
+  { id:'r24', nome:'Salada de Batata com Atum e Ovos', cat:'fit', proteina:'peixe', porcoes:3, custo:8,
+    ings:[{n:'batata',q:500,u:'g'},{n:'atum',q:2,u:'un'},{n:'ovos',q:3,u:'un'},{n:'tomate',q:150,u:'g'},{n:'cebola',q:60,u:'g'},{n:'azeite',q:20,u:'ml'}] },
+
+  { id:'r25', nome:'Salada de Folhas com Ovo Cozido', cat:'vegetariana', proteina:'ovo', porcoes:3, custo:5,
+    ings:[{n:'alface',q:1,u:'un'},{n:'rúcula',q:80,u:'g'},{n:'agrião',q:80,u:'g'},{n:'ovos',q:4,u:'un'},{n:'tomate',q:200,u:'g'},{n:'azeite',q:20,u:'ml'}] },
+
+  // ── SÓ LEGUME / VEGETARIANO ──
+
+  { id:'r26', nome:'Arroz, Quiabo Refogado e Farofa', cat:'vegetariana', proteina:'vegetal', porcoes:4, custo:5,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'quiabo',q:400,u:'g'},{n:'farinha de mandioca',q:150,u:'g'},{n:'cebola',q:80,u:'g'},{n:'alho',q:15,u:'g'},{n:'azeite',q:20,u:'ml'}] },
+
+  { id:'r27', nome:'Arroz, Brócolis Refogado e Ovo', cat:'vegetariana', proteina:'ovo', porcoes:4, custo:6,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'brócolis',q:400,u:'g'},{n:'ovos',q:4,u:'un'},{n:'alho',q:15,u:'g'},{n:'azeite',q:20,u:'ml'}] },
+
+  { id:'r28', nome:'Arroz, Couve-Flor Refogada e Farofa', cat:'vegetariana', proteina:'vegetal', porcoes:4, custo:5,
+    ings:[{n:'arroz',q:320,u:'g'},{n:'couve-flor',q:450,u:'g'},{n:'farinha de mandioca',q:150,u:'g'},{n:'cebola',q:80,u:'g'},{n:'alho',q:15,u:'g'},{n:'manteiga',q:30,u:'g'}] },
+
+  // ── SOPAS ──
+
+  { id:'r29', nome:'Caldo Verde com Linguiça', cat:'sopa', proteina:'carne', porcoes:5, custo:8,
+    ings:[{n:'batata',q:500,u:'g'},{n:'couve',q:200,u:'g'},{n:'linguiça',q:200,u:'g'},{n:'cebola',q:100,u:'g'},{n:'alho',q:15,u:'g'},{n:'azeite',q:20,u:'ml'}] },
+
+  { id:'r30', nome:'Sopa de Legumes', cat:'sopa', proteina:'vegetal', porcoes:5, custo:6,
+    ings:[{n:'batata',q:350,u:'g'},{n:'cenoura',q:200,u:'g'},{n:'chuchu',q:200,u:'g'},{n:'couve',q:150,u:'g'},{n:'cebola',q:100,u:'g'},{n:'alho',q:15,u:'g'}] },
+
+  { id:'r31', nome:'Sopa de Legumes com Frango', cat:'sopa', proteina:'frango', porcoes:5, custo:9,
+    ings:[{n:'frango',q:400,u:'g'},{n:'batata',q:300,u:'g'},{n:'cenoura',q:200,u:'g'},{n:'chuchu',q:150,u:'g'},{n:'couve',q:100,u:'g'},{n:'cebola',q:80,u:'g'}] },
+
+];
+
+// PREÇOS BASE (R$/kg ou R$/un para itens contáveis)
+const PRECOS_BASE = {
+  // Proteínas
+  'frango':14,'carne moída':22,'carne bovina':28,'linguiça':18,'peixe':25,'atum':5,
+  // Grãos
+  'arroz':6,'feijão':9,'macarrão':5,'farinha de mandioca':5,'manteiga':30,
+  // Laticínios
+  'ovos':0.9,'leite':5,'queijo':42,
+  // Raízes e tubérculos
+  'batata':5,'batata doce':6,'cenoura':5,
+  // Legumes do dia a dia
+  'abobrinha':6,'chuchu':4,'quiabo':8,'jiló':7,'pepino':5,
+  // Crucíferas
+  'brócolis':8,'couve-flor':7,'couve':5,
+  // Folhas e saladas
+  'alface':4,'rúcula':6,'agrião':5,'espinafre':6,
+  // Temperos e base
+  'tomate':8,'cebola':4,'alho':28,'azeite':30,'limão':1.2,
+  // Frutas
+  'banana':4,'maçã':9,'mamão':7,'laranja':6,'uva':18,'pera':13,'melão':5,'melancia':3,
+  // Básicos
+  'sal':3,'pimenta':20
+};
+
+// CORREDORES
+const CORREDORES = {
+  '🥩 Açougue':['frango','carne moída','carne bovina','linguiça','peixe'],
+  '🌾 Mercearia':['arroz','feijão','macarrão','farinha de mandioca','atum'],
+  '🥛 Laticínios':['ovos','leite','queijo','manteiga'],
+  '🥕 Raízes e Tubérculos':['batata','batata doce','cenoura','chuchu','abobrinha'],
+  '🥦 Legumes e Verduras':['brócolis','couve-flor','couve','quiabo','jiló','pepino','tomate','cebola','alho','limão'],
+  '🥗 Saladas e Folhas':['alface','rúcula','agrião','espinafre'],
+  '🍌 Frutas':['banana','maçã','mamão','laranja','uva','pera','melão','melancia'],
+  '🧂 Temperos':['sal','pimenta','azeite'],
+  '📦 Outros':[]
+};
+
+const CAT_LABELS = {proteina:'🥩 Proteína',massa:'🍝 Massa',vegetariana:'🥦 Vegetariana',economica:'💰 Econômica',fit:'💪 Fit',sopa:'🍲 Sopa'};
+const CAT_BADGES = {proteina:'br',massa:'ba',vegetariana:'bg',economica:'bb',fit:'bp',sopa:'bt'};
+const DIAS_PT = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+
+// ════════════════════════════════════════════════════════
+// PERSIST
+// ════════════════════════════════════════════════════════
+function save() { try { localStorage.setItem('fp3', JSON.stringify(S)); } catch(e){} }
+function load() {
+  try { const d=localStorage.getItem('fp3'); if(d){ const p=JSON.parse(d); Object.assign(S,p); } } catch(e){}
+  if (!S.receitas || !S.receitas.length) S.receitas = JSON.parse(JSON.stringify(DR));
+  if (!S.precos) S.precos = {};
+  if (!S.historico) S.historico = [];
+  // Merge base prices with any user overrides
+  S.precos = Object.assign({}, PRECOS_BASE, S.precos);
+}
+
+// ════════════════════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════════════════════
+function go(id) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  document.querySelector('[data-tab="'+id+'"]').classList.add('active');
+  const renders = {estoque:renderEstoque,promocoes:renderPromo,receitas:renderReceitas,preferencias:renderPrefs,dashboard:renderDashboard,plano:renderPlano,compras:renderCompras,precos:renderPrecos,historico:renderHistorico};
+  if(renders[id]) renders[id]();
+}
+
+// ════════════════════════════════════════════════════════
+// THEME
+// ════════════════════════════════════════════════════════
+function toggleTheme() {
+  document.documentElement.dataset.theme = document.documentElement.dataset.theme==='dark'?'light':'dark';
+}
+
+// ════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════
+function loadConfigUI() {
+  const c=S.config;
+  ['moradores','dias','marmitas','orcamento','delivery','porcoes'].forEach(k=>{
+    const el=document.getElementById('cfg-'+k); if(el) el.value=c[k];
+  });
+  document.getElementById('cfg-refeicoes').value = c.refeicoes;
+  document.getElementById('cfg-max-proteina').value = c.max_proteina||3;
+  document.getElementById('cfg-frutas').checked = c.frutas;
+  document.getElementById('cfg-variar').checked = c.variar;
+  document.getElementById('cfg-no-massa-twice').checked = c.no_massa_twice!==false;
+}
+function saveConfig() {
+  S.config = {
+    moradores:+document.getElementById('cfg-moradores').value,
+    dias:+document.getElementById('cfg-dias').value,
+    marmitas:+document.getElementById('cfg-marmitas').value,
+    refeicoes:+document.getElementById('cfg-refeicoes').value,
+    orcamento:+document.getElementById('cfg-orcamento').value,
+    delivery:+document.getElementById('cfg-delivery').value,
+    porcoes:+document.getElementById('cfg-porcoes').value,
+    max_proteina:+document.getElementById('cfg-max-proteina').value,
+    frutas:document.getElementById('cfg-frutas').checked,
+    variar:document.getElementById('cfg-variar').checked,
+    no_massa_twice:document.getElementById('cfg-no-massa-twice').checked,
+  };
+  save(); toast('✅ Configurações salvas!');
+}
+
+// ════════════════════════════════════════════════════════
+// PREÇOS
+// ════════════════════════════════════════════════════════
+function renderPrecos() {
+  const el = document.getElementById('price-grid');
+  const allItems = Object.keys(PRECOS_BASE).sort();
+  // Build datalist for estoque
+  const dl = document.getElementById('ing-suggestions');
+  if(dl) dl.innerHTML = allItems.map(n=>`<option value="${n}">`).join('');
+
+  el.innerHTML = allItems.map(item => `
+    <div class="price-item">
+      <span class="price-name">${item.charAt(0).toUpperCase()+item.slice(1)}</span>
+      <input class="price-input" type="number" data-item="${item}"
+        value="${(S.precos[item]||PRECOS_BASE[item]||0).toFixed(2)}" step="0.10" min="0">
+      <span class="price-unit">R$/kg</span>
+    </div>`).join('');
+}
+function savePrecos() {
+  document.querySelectorAll('.price-input').forEach(inp => {
+    S.precos[inp.dataset.item] = +inp.value;
+  });
+  save(); toast('✅ Preços salvos!');
+}
+function getPrice(item) {
+  const nm = item.toLowerCase();
+  const prom = S.promocoes.find(p=>p.nome.toLowerCase().includes(nm)||nm.includes(p.nome.toLowerCase()));
+  if(prom && prom.preco>0) return prom.preco;
+  const k = Object.keys(S.precos).find(k=>k===nm||nm.includes(k)||k.includes(nm));
+  return k ? S.precos[k] : 10;
+}
+
+// ════════════════════════════════════════════════════════
+// ESTOQUE
+// ════════════════════════════════════════════════════════
+function renderEstoque() {
+  const el = document.getElementById('estoque-list');
+  if (!S.estoque.length) {
+    el.innerHTML=`<div class="empty"><div class="ei">📦</div><div class="et">Estoque vazio</div><div class="ed">Adicione itens que já tem em casa.</div></div>`;
+    return;
+  }
+  // Group by category
+  el.innerHTML=`<div class="card"><div class="card-title">📦 ${S.estoque.length} ite${S.estoque.length===1?'m':'ns'} no estoque</div>`+
+    S.estoque.map((it,i)=>`
+      <div class="ir ai2">
+        <span class="iname">${it.nome}</span>
+        <input type="number" value="${it.qty}" min="0" step="0.1" style="width:75px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:4px 7px;font-size:13px;color:var(--text);outline:none"
+          onchange="S.estoque[${i}].qty=+this.value;save()">
+        <span class="muted sm">${it.unit}</span>
+        <button class="btn btn-danger btn-sm" onclick="rmEstoque(${i})">✕</button>
+      </div>`).join('')+'</div>';
+}
+function addEstoque() {
+  const nome=document.getElementById('e-nome').value.trim();
+  if(!nome) return;
+  const qty=+document.getElementById('e-qty').value;
+  const unit=document.getElementById('e-unit').value;
+  const ex=S.estoque.find(e=>e.nome.toLowerCase()===nome.toLowerCase());
+  if(ex){if(ex.unit===unit)ex.qty+=qty;else ex.qty+=qty;}
+  else S.estoque.push({nome,qty,unit});
+  save(); closeM('m-estoque');
+  document.getElementById('e-nome').value='';
+  renderEstoque(); toast('✅ '+nome+' adicionado');
+}
+function rmEstoque(i) {
+  S.estoque.splice(i,1); save(); renderEstoque();
+}
+function clearEstoque() {
+  if(confirm('Limpar todo o estoque?')) { S.estoque=[]; save(); renderEstoque(); }
+}
+function getStock(item) {
+  const nm=item.toLowerCase();
+  const found=S.estoque.find(e=>e.nome.toLowerCase()===nm||nm.includes(e.nome.toLowerCase())||e.nome.toLowerCase().includes(nm));
+  if(!found) return 0;
+  let g=found.qty;
+  if(found.unit==='kg') g*=1000;
+  else if(found.unit==='L') g*=1000;
+  else if(found.unit==='un') g*=100;
+  else if(found.unit==='dz') g*=1200;
+  return g;
+}
+
+// ════════════════════════════════════════════════════════
+// PROMOÇÕES
+// ════════════════════════════════════════════════════════
+function renderPromo() {
+  const el=document.getElementById('promo-list');
+  if(!S.promocoes.length){
+    el.innerHTML=`<div class="empty"><div class="ei">🏷️</div><div class="et">Sem promoções</div><div class="ed">Adicione itens em oferta esta semana.</div></div>`;
+    return;
+  }
+  el.innerHTML=`<div class="card"><div class="card-title">🏷️ ${S.promocoes.length} ite${S.promocoes.length===1?'m':'ns'} em promoção</div>`+
+    S.promocoes.map((p,i)=>`
+      <div class="ir ai2">
+        <span class="iname">${p.nome}</span>
+        ${p.preco>0?`<span class="badge bg">R$ ${p.preco.toFixed(2)}</span>`:''}
+        ${p.normal>0?`<span class="badge ba" style="text-decoration:line-through">R$ ${p.normal.toFixed(2)}</span>`:''}
+        ${p.normal>0&&p.preco>0?`<span class="badge bg">-${Math.round((1-p.preco/p.normal)*100)}%</span>`:''}
+        <button class="btn btn-danger btn-sm" onclick="rmProm(${i})">✕</button>
+      </div>`).join('')+'</div>';
+}
+function addProm() {
+  const nome=document.getElementById('p-nome').value.trim();
+  if(!nome) return;
+  S.promocoes.push({nome,preco:+document.getElementById('p-preco').value||0,normal:+document.getElementById('p-normal').value||0});
+  save(); closeM('m-prom');
+  document.getElementById('p-nome').value=''; renderPromo();
+  toast('✅ '+nome+' adicionado às promoções');
+  // Update price table with promo price
+  const nm=nome.toLowerCase();
+  const key=Object.keys(S.precos).find(k=>k===nm||nm.includes(k));
+  if(key && S.promocoes[S.promocoes.length-1].preco>0) S.precos[key]=S.promocoes[S.promocoes.length-1].preco;
+}
+function rmProm(i){S.promocoes.splice(i,1);save();renderPromo();}
+
+// ════════════════════════════════════════════════════════
+// PREFERÊNCIAS
+// ════════════════════════════════════════════════════════
+function renderPrefs() {
+  document.querySelectorAll('#pref-estilo .pc').forEach(c=>c.classList.toggle('active',c.dataset.v===S.prefs.estilo));
+  const el=document.getElementById('blocked-tags');
+  el.innerHTML=S.prefs.blocked.map((b,i)=>`<span class="tag blocked" onclick="rmBlocked(${i})">${b} ✕</span>`).join('');
+}
+function selEstilo(el){S.prefs.estilo=el.dataset.v;renderPrefs();}
+function addBlocked(){
+  const v=document.getElementById('blocked-in').value.trim().toLowerCase();
+  if(v&&!S.prefs.blocked.includes(v)){S.prefs.blocked.push(v);document.getElementById('blocked-in').value='';renderPrefs();}
+}
+function rmBlocked(i){S.prefs.blocked.splice(i,1);renderPrefs();}
+function savePrefs(){save();toast('✅ Preferências salvas!');}
+
+// ════════════════════════════════════════════════════════
+// RECEITAS
+// ════════════════════════════════════════════════════════
+let editRecipeId = null;
+
+function renderReceitas() {
+  const el=document.getElementById('receitas-grid');
+  el.innerHTML=S.receitas.map((r,i)=>`
+    <div class="rc ai2">
+      <div class="rn">${r.nome}</div>
+      <div class="rm">
+        <span class="badge ${CAT_BADGES[r.cat]||'bb'}">${CAT_LABELS[r.cat]||r.cat}</span>
+        <span class="badge bb">🍽️ ${r.porcoes}p</span>
+        <span class="badge ba">R$ ${(r.custo||8).toFixed(0)}/p</span>
+      </div>
+      <div class="ri">${(r.ings||[]).map(g=>typeof g==='object'?`${g.q}${g.u} ${g.n}`:g).join(' · ')}</div>
+      <div class="flex g8 mt8">
+        <button class="btn btn-secondary btn-sm" onclick="editReceita(${i})">✏️ Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="rmReceita(${i})">Remover</button>
+      </div>
+    </div>`).join('');
+}
+// Estimated grams per portion for common ingredients
+const ING_GRAMS = {
+  'frango':140,'carne moída':120,'carne bovina':140,'linguiça':80,'peixe':150,'atum':50,
+  'arroz':80,'feijão':70,'macarrão':100,'lentilha':75,
+  'ovos':55,'leite':120,'queijo':30,'manteiga':15,
+  'batata':120,'batata doce':120,'cenoura':80,'abobrinha':100,'chuchu':100,
+  'brócolis':90,'couve-flor':100,'couve':50,'quiabo':90,'jiló':80,'pepino':80,
+  'alface':40,'rúcula':30,'agrião':30,'espinafre':40,
+  'tomate':80,'cebola':50,'alho':8,'azeite':10,'limão':20,
+  'banana':100,'maçã':130,'mamão':120,
+  'sal':3,'pimenta':2,'tempero':3
+};
+function ingGrams(name) {
+  const k = Object.keys(ING_GRAMS).find(k => name.includes(k) || k.includes(name));
+  return k ? ING_GRAMS[k] : 80; // default 80g per portion
+}
+
+function openReceitaModal(r) {
+  document.getElementById('ing-list').innerHTML='';
+  if(r) {
+    document.getElementById('rec-modal-title').textContent='✏️ Editar Receita';
+    document.getElementById('r-nome').value=r.nome;
+    document.getElementById('r-cat').value=r.cat;
+    document.getElementById('r-porcoes').value=r.porcoes;
+    document.getElementById('r-proteina').value=r.proteina;
+    const nomes=(r.ings||[]).map(g=>typeof g==='object'?g.n:g);
+    nomes.forEach(n=>addIngTag(n));
+  } else {
+    document.getElementById('rec-modal-title').textContent='📖 Nova Receita';
+    document.getElementById('r-nome').value='';
+    document.getElementById('r-cat').selectedIndex=0;
+    document.getElementById('r-porcoes').value=4;
+    document.getElementById('r-proteina').selectedIndex=0;
+  }
+  openM('m-receita');
+}
+function editReceita(i){editRecipeId=i;openReceitaModal(S.receitas[i]);}
+function addIngTag(name) {
+  const input = document.getElementById('ing-add-input');
+  const val = (name || input.value).trim().toLowerCase();
+  if(!val) return;
+  // Don't add duplicates
+  const existing = [...document.querySelectorAll('#ing-list .ing-tag')].map(t=>t.dataset.n);
+  if(existing.includes(val)) { if(input) input.value=''; return; }
+  const il = document.getElementById('ing-list');
+  const tag = document.createElement('span');
+  tag.className = 'tag active ing-tag';
+  tag.dataset.n = val;
+  tag.innerHTML = val + ' <span onclick="this.parentElement.remove()" style="opacity:.6;cursor:pointer;margin-left:2px">✕</span>';
+  il.appendChild(tag);
+  if(input) input.value='';
+}
+function saveReceita() {
+  const nome=document.getElementById('r-nome').value.trim();
+  if(!nome) return;
+  const tags=[...document.querySelectorAll('#ing-list .ing-tag')];
+  if(!tags.length){ toast('⚠️ Adicione ao menos um ingrediente'); return; }
+  const porcoes=+document.getElementById('r-porcoes').value||4;
+  // Build ings with estimated quantities
+  const ings=tags.map(t=>{
+    const n=t.dataset.n;
+    const q=Math.round(ingGrams(n)*porcoes);
+    const u='g';
+    return {n,q,u};
+  });
+  // Estimate cost from ingredient prices
+  const custo=ings.reduce((sum,g)=>{
+    const kg=g.q/1000;
+    return sum+kg*getPrice(g.n);
+  },0)/porcoes;
+  const rec={
+    id: editRecipeId!==null ? S.receitas[editRecipeId].id : 'u'+Date.now(),
+    nome,
+    cat:document.getElementById('r-cat').value,
+    proteina:document.getElementById('r-proteina').value,
+    porcoes,
+    ings,
+    custo: Math.max(3, +custo.toFixed(1))
+  };
+  if(editRecipeId!==null){ S.receitas[editRecipeId]=rec; editRecipeId=null; }
+  else S.receitas.push(rec);
+  save(); closeM('m-receita'); renderReceitas(); toast('✅ Receita salva!');
+}
+function rmReceita(i){if(confirm('Remover '+S.receitas[i].nome+'?')){S.receitas.splice(i,1);save();renderReceitas();}}
+function resetReceitas(){if(confirm('Restaurar receitas padrão? Receitas criadas por você serão removidas.')){S.receitas=JSON.parse(JSON.stringify(DR));save();renderReceitas();toast('↺ Receitas restauradas');}}
+
+// ════════════════════════════════════════════════════════
+// PLANNER ENGINE
+// ════════════════════════════════════════════════════════
+function scoreReceita(r, protCount, lastTwo, promoNames, blocked, estilo, lastCat) {
+  // Hard blocks
+  for(const b of blocked) {
+    const ings=(r.ings||[]).map(g=>typeof g==='object'?g.n:g);
+    if(ings.some(ing=>ing.includes(b))||r.nome.toLowerCase().includes(b)) return -9999;
+  }
+  if(estilo==='vegetariano'&&r.proteina!=='vegetal'&&r.proteina!=='ovo') return -9999;
+  // No-massa-twice rule
+  if(S.config.no_massa_twice && r.cat==='massa' && lastCat==='massa') return -9999;
+  // Max same protein
+  if((protCount[r.proteina]||0) >= (S.config.max_proteina||3)) return -500;
+
+  let score = 50;
+  // Style bonuses
+  const styleMap={economico:{fn:r=>r.custo<=8?30:r.custo<=12?10:0},proteina:{fn:r=>(r.cat==='proteina'||r.cat==='fit')?20:0},lowcarb:{fn:r=>(r.cat==='fit'||r.proteina==='vegetal'||r.proteina==='ovo')?20:0},equilibrado:{fn:r=>15},fit:{fn:r=>r.cat==='fit'?25:0},vegetariano:{fn:r=>0}};
+  if(styleMap[estilo]) score += styleMap[estilo].fn(r);
+
+  // Promo bonus
+  const ings=(r.ings||[]).map(g=>typeof g==='object'?g.n:g);
+  if(ings.some(ing=>promoNames.some(p=>ing.includes(p)||p.includes(ing)))) score+=35;
+
+  // Stock bonus
+  const stockBonus = ings.filter(ing=>getStock(ing)>0).length * 5;
+  score += Math.min(stockBonus, 25);
+
+  // Recency penalty
+  if(lastTwo.includes(r.id)) score -= 60;
+
+  // Variety: prefer different proteins
+  if((protCount[r.proteina]||0)>=2) score -= 25;
+
+  score += Math.random()*8-4; // small jitter
+  return score;
+}
+
+async function generateWeek() {
+  saveConfig();
+  const c=S.config;
+  const promoNames=S.promocoes.map(p=>p.nome.toLowerCase());
+  const blocked=S.prefs.blocked;
+  const estilo=S.prefs.estilo;
+
+  // Show overlay with steps
+  const overlay=document.getElementById('gen-overlay');
+  const genText=document.getElementById('gen-text');
+  const genStep=document.getElementById('gen-step');
+  overlay.classList.add('show');
+
+  const steps=[
+    [200,'Analisando estoque atual…'],
+    [300,'Verificando promoções da semana…'],
+    [300,'Aplicando preferências alimentares…'],
+    [400,'Selecionando receitas para cada dia…'],
+    [400,'Balanceando proteínas…'],
+    [300,'Calculando lista de compras…'],
+    [200,'Finalizando…'],
+  ];
+
+  for(const [ms, text] of steps) {
+    genStep.textContent=text;
+    await delay(ms);
+  }
+
+  const plano=[];
+  const lastTwo=[];
+  const protCount={};
+  let lastCat='';
+
+  for(let d=0;d<c.dias;d++){
+    const recipe=selectR(S.receitas, protCount, c.variar?lastTwo:[],promoNames,blocked,estilo,lastCat);
+    const porcoes_noite=c.moradores+c.marmitas;
+    const porcoes_alm=c.refeicoes>=2?c.moradores:0;
+    const total_porcoes=porcoes_noite+porcoes_alm;
+    const lotes=Math.ceil(total_porcoes/(recipe.porcoes||4));
+
+    plano.push({dia:DIAS_PT[d%7],data:d,receita:recipe,porcoes:total_porcoes,lotes,marmitas:c.marmitas});
+
+    lastTwo.push(recipe.id);
+    if(lastTwo.length>2) lastTwo.shift();
+    protCount[recipe.proteina]=(protCount[recipe.proteina]||0)+1;
+    lastCat=recipe.cat;
+  }
+
+  // Save to history before replacing
+  if(S.plano.length>0) {
+    S.historico.unshift({
+      date: new Date().toLocaleDateString('pt-BR'),
+      timestamp: Date.now(),
+      plano: JSON.parse(JSON.stringify(S.plano))
+    });
+    if(S.historico.length>8) S.historico.pop();
+  }
+
+  S.plano=plano;
+  S.compras=calcShoppingList();
+  save();
+
+  overlay.classList.remove('show');
+  renderPlano(); renderCompras(); renderDashboard();
+  toast('✅ Semana gerada com '+plano.length+' refeições!');
+}
+
+function selectR(recipes, protCount, lastTwo, promoNames, blocked, estilo, lastCat) {
+  const scored=recipes.map(r=>({r,s:scoreReceita(r,protCount,lastTwo,promoNames,blocked,estilo,lastCat)}))
+    .filter(x=>x.s>-900).sort((a,b)=>b.s-a.s);
+  if(!scored.length) return recipes[Math.floor(Math.random()*recipes.length)];
+  const top=scored.slice(0,Math.min(3,scored.length));
+  return top[Math.floor(Math.random()*top.length)].r;
+}
+
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// ════════════════════════════════════════════════════════
+// SWAP MEAL (edit single day)
+// ════════════════════════════════════════════════════════
+function swapMeal(dayIdx) {
+  const day=S.plano[dayIdx];
+  document.getElementById('troca-title').textContent='Trocar refeição — '+day.dia;
+  const list=document.getElementById('troca-list');
+  list.innerHTML=S.receitas.map(r=>`
+    <div class="rc" style="margin-bottom:8px;cursor:pointer" onclick="confirmSwap(${dayIdx},'${r.id}')">
+      <div class="rn">${r.nome} ${r.id===day.receita.id?'<span class="badge bg">atual</span>':''}</div>
+      <div class="rm">
+        <span class="badge ${CAT_BADGES[r.cat]||'bb'}">${CAT_LABELS[r.cat]||r.cat}</span>
+        <span class="badge bb">🍽️ ${r.porcoes}p</span>
+        <span class="badge ba">R$ ${(r.custo||8).toFixed(0)}/p</span>
+      </div>
+      <div class="ri sm muted">${(r.ings||[]).map(g=>typeof g==='object'?g.n:g).join(', ')}</div>
+    </div>`).join('');
+  openM('m-troca');
+}
+function confirmSwap(dayIdx, recId) {
+  const rec=S.receitas.find(r=>r.id===recId);
+  if(!rec) return;
+  S.plano[dayIdx].receita=rec;
+  S.compras=calcShoppingList();
+  save();
+  closeM('m-troca');
+  renderPlano(); renderCompras(); renderDashboard();
+  toast('✅ Refeição trocada!');
+}
+
+// ════════════════════════════════════════════════════════
+// SHOPPING LIST CALCULATOR
+// ════════════════════════════════════════════════════════
+function calcShoppingList() {
+  const needs={}; // {item: grams_needed}
+
+  for(const day of S.plano) {
+    const r=day.receita;
+    const scaleFactor=day.lotes*(day.porcoes/(r.porcoes||4));
+    for(const ing of (r.ings||[])) {
+      const nm=typeof ing==='object'?ing.n:ing;
+      let qg=0;
+      if(typeof ing==='object') {
+        if(ing.u==='kg') qg=ing.q*1000;
+        else if(ing.u==='L') qg=ing.q*1000;
+        else if(ing.u==='un') qg=ing.q*100;
+        else qg=ing.q;
+      } else qg=150;
+      needs[nm]=(needs[nm]||0)+qg*scaleFactor;
+    }
+  }
+
+  // Fruits module
+  if(S.config.frutas) {
+    const days=S.config.dias, ppl=S.config.moradores;
+    const tot=days*ppl;
+    const frutas={'banana':tot*0.4*120,'maçã':tot*0.35*180,'mamão':tot*0.25*200};
+    for(const [k,v] of Object.entries(frutas)) needs[k]=(needs[k]||0)+v;
+  }
+
+  // Build list grouped by corredor
+  const assigned=new Set();
+  const result=[];
+
+  for(const [corredor, items] of Object.entries(CORREDORES)) {
+    const catItems=[];
+    for(const item of items) {
+      if(!needs[item]) continue;
+      assigned.add(item);
+      const neededG=needs[item];
+      const stockG=getStock(item);
+      const buyG=Math.max(0,neededG-stockG);
+      if(buyG<10) continue;
+
+      const buyKg=buyG/1000;
+      const preco=getPrice(item);
+      const custo=buyKg*preco;
+      const qty_display=item==='ovos'?`${Math.ceil(buyG/100)} un`
+        :item==='atum'?`${Math.ceil(buyG/100)} lata${Math.ceil(buyG/100)>1?'s':''}`
+        :item==='alface'?`${Math.ceil(buyG/150)} un`
+        :buyKg>=1?`${buyKg.toFixed(1)} kg`:`${Math.round(buyG)} g`;
+
+      const emPromocao=S.promocoes.some(p=>p.nome.toLowerCase().includes(item)||item.includes(p.nome.toLowerCase()));
+      catItems.push({nome:item,buyG,buyKg,qty_display,custo,stockG,emPromocao,corredor});
+    }
+    if(catItems.length) result.push({cat:corredor,items:catItems});
+  }
+
+  // Others
+  const otherItems=[];
+  for(const [item,neededG] of Object.entries(needs)) {
+    if(assigned.has(item)) continue;
+    const stockG=getStock(item);
+    const buyG=Math.max(0,neededG-stockG);
+    if(buyG<10) continue;
+    const buyKg=buyG/1000;
+    const preco=getPrice(item);
+    const qty_display=buyKg>=1?`${buyKg.toFixed(1)} kg`:`${Math.round(buyG)} g`;
+    otherItems.push({nome:item,buyG,buyKg,qty_display,custo:buyKg*preco,stockG,emPromocao:false,corredor:'Outros'});
+  }
+  if(otherItems.length) result.push({cat:'📦 Outros',items:otherItems});
+
+  return result;
+}
+
+// ════════════════════════════════════════════════════════
+// RENDER PLANO
+// ════════════════════════════════════════════════════════
+function renderPlano() {
+  const empty=document.getElementById('plano-empty');
+  const content=document.getElementById('plano-content');
+  const btnSobras=document.getElementById('btn-sobras');
+  if(!S.plano.length){ empty.style.display='block';content.style.display='none';btnSobras.style.display='none';return; }
+  empty.style.display='none'; content.style.display='block'; btnSobras.style.display='';
+
+  // Week visual
+  document.getElementById('week-visual').innerHTML=S.plano.map((d,i)=>`
+    <div class="dc ai2">
+      <button class="dc-edit no-print" onclick="swapMeal(${i})" title="Trocar refeição">✏️</button>
+      <div class="dn">${d.dia.substring(0,3).toUpperCase()}</div>
+      <div class="dm" title="${d.receita.nome}">${d.receita.nome.length>24?d.receita.nome.substring(0,22)+'…':d.receita.nome}</div>
+      ${d.marmitas>0?`<div class="dmm">🥡 ${d.marmitas}×</div>`:''}
+    </div>`).join('');
+
+  // Table
+  document.getElementById('plano-tbody').innerHTML=S.plano.map((d,i)=>`
+    <tr class="ai2">
+      <td><strong>${d.dia}</strong></td>
+      <td>${d.receita.nome}</td>
+      <td><span class="badge ${CAT_BADGES[d.receita.cat]||'bb'}">${CAT_LABELS[d.receita.cat]||d.receita.cat}</span></td>
+      <td>${d.porcoes}</td>
+      <td>${d.marmitas>0?`<span class="badge bg">✅ ${d.marmitas}×</span>`:'<span class="muted sm">—</span>'}</td>
+      <td class="no-print"><button class="btn btn-secondary btn-sm" onclick="swapMeal(${i})">✏️ Trocar</button></td>
+    </tr>`).join('');
+
+  // Sobras form
+  document.getElementById('sobras-form').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`+
+    ['Arroz','Feijão','Frango','Carne','Macarrão','Legumes'].map(item=>`
+      <div class="field">
+        <label>${item} (g)</label>
+        <input type="number" data-sobra="${item.toLowerCase()}" value="0" min="0" step="50"
+          style="background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px;font-size:13px;color:var(--text);outline:none">
+      </div>`).join('')+'</div>';
+}
+
+// ════════════════════════════════════════════════════════
+// RENDER COMPRAS
+// ════════════════════════════════════════════════════════
+function renderCompras() {
+  const empty=document.getElementById('compras-empty');
+  const content=document.getElementById('compras-content');
+  if(!S.compras.length){ empty.style.display='block';content.style.display='none';return; }
+  empty.style.display='none'; content.style.display='block';
+
+  let total=0;
+  S.compras.forEach(c=>c.items.forEach(it=>total+=it.custo||0));
+  document.getElementById('c-total').textContent='R$ '+total.toFixed(2).replace('.',',');
+
+  const orc=S.config.orcamento;
+  const pct=orc>0?Math.min(110,total/orc*100):0;
+  document.getElementById('orc-bar').style.width=pct+'%';
+  document.getElementById('orc-bar').style.background=pct>100?'var(--red)':pct>80?'var(--amber)':'var(--green)';
+  document.getElementById('orc-label').textContent=orc>0?`${pct.toFixed(0)}% do orçamento de R$ ${orc.toFixed(2)}`:'';
+
+  document.getElementById('compras-list').innerHTML=S.compras.map(cat=>`
+    <div class="sc">
+      <div class="sct">${cat.cat}</div>
+      ${cat.items.map((it,idx)=>`
+        <div class="si" id="si-${cat.cat.replace(/\W/g,'')}-${idx}">
+          <input type="checkbox" onchange="toggleCheck(this)">
+          <span class="sin">
+            ${it.nome.charAt(0).toUpperCase()+it.nome.slice(1)}
+            ${it.emPromocao?'<span class="badge ba" style="margin-left:5px;font-size:10px">PROMO</span>':''}
+            ${it.stockG>0?`<span class="sm muted"> (estoque: ${it.stockG>=1000?(it.stockG/1000).toFixed(1)+'kg':Math.round(it.stockG)+'g'})</span>`:''}
+          </span>
+          <span class="siq">${it.qty_display}</span>
+          <span class="sip">R$ ${(it.custo||0).toFixed(2)}</span>
+        </div>`).join('')}
+    </div>`).join('');
+}
+function toggleCheck(cb){const row=cb.closest('.si');row.classList.toggle('checked',cb.checked);}
+function clearChecked(){document.querySelectorAll('.si.checked').forEach(el=>{el.querySelector('input[type=checkbox]').checked=false;el.classList.remove('checked');});}
+
+// ════════════════════════════════════════════════════════
+// SOBRAS
+// ════════════════════════════════════════════════════════
+function saveSobras() {
+  let count=0;
+  document.querySelectorAll('[data-sobra]').forEach(inp=>{
+    const g=+inp.value;
+    if(g<=0) return;
+    const nome=inp.dataset.sobra;
+    const ex=S.estoque.find(e=>e.nome.toLowerCase()===nome);
+    if(ex){if(ex.unit==='kg')ex.qty+=g/1000;else if(ex.unit==='g')ex.qty+=g;else ex.qty+=g/100;}
+    else S.estoque.push({nome:nome.charAt(0).toUpperCase()+nome.slice(1),qty:g,unit:'g'});
+    count++;
+  });
+  save(); closeM('m-sobras');
+  if(count) toast(`♻️ ${count} ite${count===1?'m':'ns'} devolvido${count===1?'':'s'} ao estoque!`);
+}
+
+// ════════════════════════════════════════════════════════
+// HISTÓRICO
+// ════════════════════════════════════════════════════════
+function renderHistorico() {
+  const el=document.getElementById('hist-content');
+  if(!S.historico||!S.historico.length){
+    el.innerHTML=`<div class="empty"><div class="ei">🕐</div><div class="et">Sem histórico</div><div class="ed">As semanas geradas aparecem aqui automaticamente.</div></div>`;
+    return;
+  }
+  el.innerHTML=S.historico.map((w,wi)=>`
+    <div class="hist-week">
+      <div class="hist-date">Semana gerada em ${w.date}</div>
+      <div class="hist-meals">
+        ${(w.plano||[]).map(d=>`
+          <div style="text-align:center;min-width:90px">
+            <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase">${d.dia.substring(0,3)}</div>
+            <span class="badge bb" style="font-size:11px;margin-top:3px">${d.receita.nome.substring(0,18)}${d.receita.nome.length>18?'…':''}</span>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+function clearHistorico(){if(confirm('Limpar todo o histórico?')){S.historico=[];save();renderHistorico();}}
+
+// ════════════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════════════
+function renderDashboard() {
+  const p=S.plano, c=S.config;
+  const refeicoes=p.length;
+  const marmitas=p.reduce((a,d)=>a+d.marmitas,0);
+  let custo=0; S.compras.forEach(cat=>cat.items.forEach(it=>custo+=it.custo||0));
+  custo+=12; // base (azeite, sal, etc)
+  const eco=(marmitas*c.delivery)-custo;
+
+  let stockUsed=0;
+  for(const it of S.estoque){
+    const wasUsed=p.some(d=>(d.receita.ings||[]).some(g=>{
+      const nm=typeof g==='object'?g.n:g;
+      return nm.includes(it.nome.toLowerCase())||it.nome.toLowerCase().includes(nm);
+    }));
+    if(wasUsed) stockUsed++;
+  }
+  const apr=S.estoque.length>0?Math.round(stockUsed/S.estoque.length*100):0;
+
+  document.getElementById('s-ref').textContent=refeicoes;
+  document.getElementById('s-mar').textContent=marmitas;
+  document.getElementById('s-cus').textContent='R$ '+custo.toFixed(0);
+  document.getElementById('s-eco').textContent=eco>0?'R$ '+eco.toFixed(0):'—';
+  document.getElementById('s-apr').textContent=apr+'%';
+  document.getElementById('s-des').textContent=(custo*0.11).toFixed(1)+' kg';
+
+  // Protein chart
+  const prots={};
+  p.forEach(d=>{prots[d.receita.proteina]=(prots[d.receita.proteina]||0)+1;});
+  const ptColors={frango:'var(--blue)',carne:'var(--red)',peixe:'var(--teal)',ovo:'var(--amber)',vegetal:'var(--green)',nenhuma:'var(--text3)'};
+  const ptLbls={frango:'Frango',carne:'Carne',peixe:'Peixe',ovo:'Ovo',vegetal:'Vegetal',nenhuma:'Sem proteína'};
+  const tot=p.length||1;
+  document.getElementById('prot-chart').innerHTML=Object.entries(prots).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
+    <div style="margin-bottom:9px">
+      <div class="flex center between mb8" style="margin-bottom:4px">
+        <span style="font-size:13px">${ptLbls[k]||k}</span>
+        <span class="sm muted">${v} dia${v>1?'s':''} · ${Math.round(v/tot*100)}%</span>
+      </div>
+      <div class="pb"><div class="pf" style="width:${Math.round(v/tot*100)}%;background:${ptColors[k]||'var(--green)'}"></div></div>
+    </div>`).join('')||'<div class="muted sm">Gere o plano semanal para ver estatísticas.</div>';
+
+  // Corredor chart
+  const corredorTotals={};
+  S.compras.forEach(cat=>{
+    const t=cat.items.reduce((a,it)=>a+(it.custo||0),0);
+    if(t>0) corredorTotals[cat.cat]=t;
+  });
+  const totalComp=Object.values(corredorTotals).reduce((a,b)=>a+b,0)||1;
+  document.getElementById('corredor-chart').innerHTML=Object.entries(corredorTotals).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
+    <div style="margin-bottom:9px">
+      <div class="flex center between mb8" style="margin-bottom:4px">
+        <span style="font-size:13px">${k}</span>
+        <span class="sm muted">R$ ${v.toFixed(2)} · ${Math.round(v/totalComp*100)}%</span>
+      </div>
+      <div class="pb"><div class="pf" style="width:${Math.round(v/totalComp*100)}%"></div></div>
+    </div>`).join('')||'<div class="muted sm">Gere o plano semanal para ver distribuição.</div>';
+
+  // Tips
+  const dicas=[];
+  if(S.promocoes.length>0) dicas.push('🏷️ '+S.promocoes.length+' ite'+(S.promocoes.length===1?'m':'ns')+' em promoção foram priorizados.');
+  if(marmitas>0) dicas.push('🥡 '+marmitas+' quentinhas semanais = economia estimada de R$ '+(marmitas*c.delivery).toFixed(0)+' em almoços fora.');
+  if(apr<50&&S.estoque.length>0) dicas.push('⚠️ Apenas '+apr+'% do estoque será aproveitado. Considere priorizar o que tem em casa.');
+  if(custo>c.orcamento&&c.orcamento>0) dicas.push('💰 Custo estimado R$'+custo.toFixed(0)+' está acima do orçamento de R$'+c.orcamento+'.');
+  const massas=p.filter(d=>d.receita.cat==='massa').length;
+  if(massas>=3) dicas.push('🍝 '+massas+' pratos de massa na semana. Considere variar mais.');
+  if(S.historico.length>0){
+    const lastWeekMeals=new Set((S.historico[0].plano||[]).map(d=>d.receita.id));
+    const repeats=p.filter(d=>lastWeekMeals.has(d.receita.id)).length;
+    if(repeats>3) dicas.push('🔄 '+repeats+' refeições iguais à semana passada. O cardápio pode estar pouco variado.');
+  }
+  if(!dicas.length) dicas.push('✅ Planejamento equilibrado e dentro do orçamento!');
+  document.getElementById('dicas-list').innerHTML=dicas.map(d=>`<div style="padding:9px 12px;background:var(--bg3);border-radius:7px;font-size:13px;margin-bottom:7px">${d}</div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// MODAIS
+// ════════════════════════════════════════════════════════
+function openM(id){document.getElementById(id).classList.add('open');}
+function closeM(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.mo').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo.open').forEach(o=>o.classList.remove('open'));});
+
+// ════════════════════════════════════════════════════════
+// PRINT
+// ════════════════════════════════════════════════════════
+function printPlan(){window.print();}
+
+// ════════════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════════════
+let _tt;
+function toast(msg) {
+  let el=document.getElementById('_toast');
+  if(!el){
+    el=document.createElement('div');el.id='_toast';
+    el.style.cssText='position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:11px 18px;border-radius:9px;font-size:13px;z-index:300;box-shadow:var(--shadow);transition:opacity .3s;pointer-events:none;white-space:nowrap';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg; el.style.opacity='1';
+  clearTimeout(_tt); _tt=setTimeout(()=>el.style.opacity='0',2800);
+}
+
+// ════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  load();
+  loadConfigUI();
+  renderEstoque();
+  renderReceitas();
+  renderPrefs();
+  renderPrecos();
+  if(S.plano.length){renderPlano();renderCompras();renderDashboard();}
+
+  // Button actions
+  document.getElementById('m-receita').querySelector('.btn-primary').onclick=saveReceita;
+  document.getElementById('m-estoque').querySelector('.btn-primary').onclick=addEstoque;
+  document.getElementById('m-prom').querySelector('.btn-primary').onclick=addProm;
+
+  // Open receita modal
+  document.querySelector('[onclick="openM(\'m-receita\')"]').onclick=()=>{editRecipeId=null;openReceitaModal(null);};
+});
+</script>
+</body>
+</html>
