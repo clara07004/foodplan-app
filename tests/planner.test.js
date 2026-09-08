@@ -352,39 +352,71 @@ describe('calcShoppingList', () => {
   });
 });
 
-// ══════════════════════════════════════════════════ limitações conhecidas
+// ══════════════════════════════════════════════════ resolução de nomes
 
-describe('LIMITAÇÕES CONHECIDAS — casamento por substring', () => {
+describe('resolução de nomes — qualificador distingue ingrediente', () => {
   /**
-   * Estes testes afirmam o comportamento ERRADO de hoje, de propósito.
-   *
-   * O casamento de nomes compara por substring nos dois sentidos, então um
-   * item cujo nome contém o nome de outro resolve para o item errado. Como
-   * `Object.keys` preserva a ordem de inserção, quem aparece primeiro na
-   * tabela vence.
-   *
-   * Quando a correção entrar, estes testes falham — e a falha é o sinal de
-   * que a correção funcionou. Aí o valor esperado é trocado pelo correto.
+   * Estes quatro casos eram bugs reais, encontrados ao escrever os testes:
+   * o casamento por substring resolvia um ingrediente para outro, e a ordem
+   * das chaves da tabela decidia qual vencia.
    */
 
-  test('preço de "batata doce" resolve para o de "batata"', () => {
-    // 'batata' vem antes na tabela e é substring de 'batata doce'
-    assert.equal(FP.getPrice(FP.PRECOS_BASE, [], 'batata doce'), 5); // correto: 6
+  test('preço de "batata doce" não resolve para o de "batata"', () => {
+    assert.equal(FP.getPrice(FP.PRECOS_BASE, [], 'batata doce'), 6);
+    assert.equal(FP.getPrice(FP.PRECOS_BASE, [], 'batata'), 5);
   });
 
-  test('preço de "couve" resolve para o de "couve-flor"', () => {
-    // 'couve-flor' vem antes na tabela e contém 'couve'
-    assert.equal(FP.getPrice(FP.PRECOS_BASE, [], 'couve'), 7); // correto: 5
+  test('preço de "couve" não resolve para o de "couve-flor"', () => {
+    assert.equal(FP.getPrice(FP.PRECOS_BASE, [], 'couve'), 5);
+    assert.equal(FP.getPrice(FP.PRECOS_BASE, [], 'couve-flor'), 7);
   });
 
-  test('estoque de "alho-poró" é contado como estoque de "alho"', () => {
-    const estoque = [{ nome: 'alho-poró', qty: 200, unit: 'g' }];
-    assert.equal(FP.getStock(estoque, 'alho'), 200); // correto: 0
+  test('estoque de "alho-poró" não conta como estoque de "alho"', () => {
+    assert.equal(FP.getStock([{ nome: 'alho-poró', qty: 200, unit: 'g' }], 'alho'), 0);
   });
 
-  test('estoque de "couve-flor" é contado como estoque de "couve"', () => {
-    const estoque = [{ nome: 'couve-flor', qty: 500, unit: 'g' }];
-    assert.equal(FP.getStock(estoque, 'couve'), 500); // correto: 0
+  test('estoque de "couve-flor" não conta como estoque de "couve"', () => {
+    assert.equal(FP.getStock([{ nome: 'couve-flor', qty: 500, unit: 'g' }], 'couve'), 0);
+  });
+
+  test('a recusa vale nos dois sentidos', () => {
+    // promoção na base não pode alcançar a variante...
+    assert.equal(FP.getPrice(FP.PRECOS_BASE, [{ nome: 'batata', preco: 2 }], 'batata doce'), 6);
+    // ...nem o estoque da base creditar a variante
+    assert.equal(FP.getStock([{ nome: 'batata', qty: 1, unit: 'kg' }], 'batata doce'), 0);
+  });
+
+  test('nome livre desconhecido ainda cai no ingrediente base', () => {
+    // "arroz agulhinha" não está no catálogo, então continua encontrando
+    // "arroz" — é o casamento frouxo fazendo o trabalho legítimo dele
+    assert.equal(FP.getStock([{ nome: 'arroz', qty: 1, unit: 'kg' }], 'arroz agulhinha'), 1000);
+  });
+
+  test('normalize ignora caixa e espaço sobrando', () => {
+    assert.equal(FP.normalize('  Arroz  '), 'arroz');
+    assert.equal(FP.normalize('carne   moída'), 'carne moída');
+    assert.equal(FP.normalize(null), '');
+    assert.equal(FP.getStock([{ nome: '  Arroz ', qty: 1, unit: 'kg' }], 'arroz'), 1000);
+  });
+
+  test('isQualifiedVariant exige fronteira de palavra ou hífen', () => {
+    assert.equal(FP.isQualifiedVariant('batata doce', 'batata'), true);
+    assert.equal(FP.isQualifiedVariant('alho-poró', 'alho'), true);
+    // "batatinha" estende "batata" sem separador — não é qualificador
+    assert.equal(FP.isQualifiedVariant('batatinha', 'batata'), false);
+    assert.equal(FP.isQualifiedVariant('batata', 'batata'), false);
+  });
+
+  test('resolveName devolve undefined quando nada casa', () => {
+    assert.equal(FP.resolveName('jaca', ['arroz', 'feijão']), undefined);
+    assert.equal(FP.resolveName('arroz', []), undefined);
+    assert.equal(FP.resolveName('arroz', null), undefined);
+  });
+
+  test('resolveName prefere o nome exato ao frouxo', () => {
+    // 'batata' aparece antes na lista e casaria por substring
+    assert.equal(FP.resolveName('batata doce', ['batata', 'batata doce']), 'batata doce');
+    assert.equal(FP.resolveName('batata doce', ['batata doce', 'batata']), 'batata doce');
   });
 });
 

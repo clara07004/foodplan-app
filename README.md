@@ -45,6 +45,20 @@ A lista é derivada do plano, nunca digitada:
 
 O resultado é uma lista na ordem em que se caminha pelo mercado, com o custo estimado antes de sair de casa.
 
+## Resolução de nomes de ingrediente
+
+Receita, estoque e promoção são todos texto livre, então o app precisa decidir quando dois nomes falam do mesmo ingrediente. A regra tem três degraus:
+
+1. **nome exato vence sempre**
+2. casamento por substring como alternativa, **exceto** quando os nomes diferem por um qualificador e o app já sabe nomear o que foi consultado
+3. entre os que sobram, o de tamanho mais próximo da consulta
+
+O degrau 2 existe porque `batata doce`, `couve-flor` e `alho-poró` são ingredientes diferentes de `batata`, `couve` e `alho` — e não variações de escrita. Sem essa distinção, o preço de um resolvia para o do outro.
+
+A recusa vale nos dois sentidos: promoção em `batata` não alcança `batata doce`, e estoque de `batata` não credita `batata doce`. Já um nome que o app não conhece continua caindo no ingrediente base, para que `arroz agulhinha` ainda encontre `arroz`.
+
+Onde há dúvida, a regra erra para o lado seguro: deixar de creditar estoque faz comprar um pouco a mais, enquanto creditar errado faz faltar comida.
+
 ## Configuração disponível
 
 Número de moradores, dias a planejar, refeições por dia, marmitas por dia, orçamento semanal, custo de referência de delivery (usado para calcular a economia), limite de repetição da mesma proteína, estilo alimentar e lista de ingredientes bloqueados.
@@ -69,7 +83,7 @@ Sem etapa de build, por decisão de projeto: atualizar significa trocar os arqui
 - base de 44 preços de referência, editável pelo usuário
 - 9 corredores de supermercado
 - 9 telas
-- 50 testes automatizados
+- 56 testes automatizados
 
 ## Rodar
 
@@ -96,20 +110,10 @@ A pontuação aplica jitter aleatório e a seleção sorteia entre as melhores c
 
 ## Limitações conhecidas
 
-- **Casamento de ingredientes por substring.** A comparação entre nome de ingrediente, item de estoque e item em promoção usa `includes` nos dois sentidos, então um item cujo nome contém o nome de outro resolve para o item errado. Como `Object.keys` preserva a ordem de inserção, quem aparece primeiro na tabela vence. Casos confirmados:
-
-  | Consulta | Resolve para | Deveria ser |
-  |---|---|---|
-  | preço de `batata doce` | preço de `batata` — R$ 5 | R$ 6 |
-  | preço de `couve` | preço de `couve-flor` — R$ 7 | R$ 5 |
-  | estoque de `alho` | encontra `alho-poró` | não encontrar |
-  | estoque de `couve` | encontra `couve-flor` | não encontrar |
-
-  Estão cobertos por testes que afirmam o comportamento errado de hoje. Quando a correção entrar, esses testes falham — e a falha é o sinal de que funcionou. A solução é um identificador normalizado por ingrediente, em vez de comparação por texto.
-
 - **Sem migração de schema.** O estado salvo em `localStorage` é mesclado no estado padrão sem validação de versão, então dados gravados por uma versão anterior podem sobreviver com campos faltando.
 - **Preços são de referência manual**, não integrados a nenhuma fonte externa.
 - **A interface ainda não tem teste.** Renderização e manipulação de DOM seguem sem cobertura; os testes cobrem o núcleo de decisão.
+- **A resolução de nomes é conservadora por escolha.** Um item cadastrado como `arroz branco` não credita estoque de `arroz`, porque o app não tem como saber se é a mesma coisa. A solução definitiva é um seletor de ingrediente na interface, com identificador canônico — mudança de produto, não de comparação de texto.
 
 ## Autoria
 

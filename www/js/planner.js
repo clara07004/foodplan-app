@@ -78,42 +78,109 @@
 
   // ───────────────────────────────── casamento de nomes
 
-  /**
-   * Casamento frouxo entre nomes de ingrediente.
-   *
-   * LIMITAÇÃO CONHECIDA: compara por substring nos dois sentidos, então
-   * nomes próximos casam por engano — "cebola" casa com "cebolinha".
-   * O comportamento está preservado de propósito: corrigir isso muda o
-   * resultado do app e é uma alteração separada, com os testes já no lugar
-   * para provar que a correção não quebra os casamentos legítimos.
-   */
+  /** Normaliza para comparação: minúsculas, sem espaço sobrando. */
+  function normalize(name) {
+    return String(name == null ? '' : name).toLowerCase().trim().replace(/\s+/g, ' ');
+  }
+
+  /** Casamento frouxo por substring, nos dois sentidos. */
   function looseMatch(a, b) {
     return a === b || a.includes(b) || b.includes(a);
+  }
+
+  /**
+   * `longo` é `curto` seguido de um qualificador?
+   *
+   * "batata doce" é variante qualificada de "batata"; "alho-poró" de "alho";
+   * "couve-flor" de "couve". São ingredientes DIFERENTES — e era exatamente
+   * daí que vinha o erro de resolver o preço de um para o do outro.
+   */
+  function isQualifiedVariant(longo, curto) {
+    if (longo === curto || !longo.startsWith(curto)) return false;
+    return /[\s\-]/.test(longo.charAt(curto.length));
+  }
+
+  /** Vocabulário canônico: tudo que o app sabe nomear. */
+  const KNOWN_INGREDIENTS = new Set(
+    [].concat(Object.keys(PRECOS_BASE), Object.keys(ING_GRAMS)).map(normalize)
+  );
+
+  /**
+   * O candidato deve ser recusado como casamento da consulta?
+   *
+   * Cobre os dois sentidos em que um qualificador distingue ingredientes:
+   *
+   *   consulta "alho"        · candidato "alho-poró"  → recusa
+   *   consulta "batata doce" · candidato "batata"     → recusa
+   *
+   * Só recusa quando o app sabe nomear a consulta. Nome livre que ele não
+   * conhece continua caindo no ingrediente base, para que "arroz agulhinha"
+   * ainda encontre "arroz".
+   */
+  function rejectMatch(q, c) {
+    if (q === c) return false;
+    if (!KNOWN_INGREDIENTS.has(q)) return false;
+    // o candidato é uma forma mais específica do que se pediu
+    if (isQualifiedVariant(c, q)) return true;
+    // pediu-se a forma específica e o candidato é a base, também catalogada
+    if (isQualifiedVariant(q, c) && KNOWN_INGREDIENTS.has(c)) return true;
+    return false;
+  }
+
+  /**
+   * Resolve o nome consultado contra uma lista de candidatos.
+   *
+   *   1. nome exato sempre vence — é o que corrige a resolução de preço
+   *   2. casamento frouxo como fallback, exceto quando o candidato é uma
+   *      variante qualificada de uma consulta que o app já sabe nomear
+   *   3. entre os que sobram, o de tamanho mais próximo da consulta
+   *
+   * A regra 2 erra para o lado seguro de propósito: deixar de creditar
+   * estoque faz comprar um pouco a mais, enquanto creditar errado faz
+   * faltar comida.
+   *
+   * @param {string} query
+   * @param {Array} candidates
+   * @param {function} [nameOf] extrai o nome do candidato; padrão é ele mesmo
+   * @returns {*} o candidato escolhido, ou undefined
+   */
+  function resolveName(query, candidates, nameOf) {
+    const q = normalize(query);
+    const get = nameOf || (c => c);
+    const pool = (candidates || []).map(c => ({ raw: c, n: normalize(get(c)) }));
+
+    const exato = pool.find(c => c.n === q);
+    if (exato) return exato.raw;
+
+    const viaveis = pool.filter(c => looseMatch(q, c.n) && !rejectMatch(q, c.n));
+    if (!viaveis.length) return undefined;
+
+    viaveis.sort((a, b) =>
+      Math.abs(a.n.length - q.length) - Math.abs(b.n.length - q.length));
+    return viaveis[0].raw;
   }
 
   // ───────────────────────────────── estoque e preço
 
   /** Quantidade em gramas do item disponível em estoque. 0 se não houver. */
   function getStock(estoque, item) {
-    const nm = item.toLowerCase();
-    const found = (estoque || []).find(e => looseMatch(nm, e.nome.toLowerCase()));
+    const found = resolveName(item, estoque, e => e.nome);
     if (!found) return 0;
     return found.qty * (UNIT_TO_GRAMS[found.unit] || 1);
   }
 
-  /** Preço por kg do item. Promoção vence a tabela; sem nenhum dos dois, PRECO_PADRAO. */
+  /** Preço por kg. Promoção vence a tabela; sem nenhum dos dois, PRECO_PADRAO. */
   function getPrice(precos, promocoes, item) {
-    const nm = item.toLowerCase();
-    const prom = (promocoes || []).find(p => looseMatch(nm, p.nome.toLowerCase()));
+    const prom = resolveName(item, promocoes, p => p.nome);
     if (prom && prom.preco > 0) return prom.preco;
-    const k = Object.keys(precos || {}).find(k => looseMatch(nm, k));
-    return k ? precos[k] : PRECO_PADRAO;
+    const k = resolveName(item, Object.keys(precos || {}));
+    return k !== undefined ? precos[k] : PRECO_PADRAO;
   }
 
   /** Gramas por porção do ingrediente. */
   function ingGrams(name) {
-    const k = Object.keys(ING_GRAMS).find(k => looseMatch(name, k));
-    return k ? ING_GRAMS[k] : GRAMAS_PADRAO;
+    const k = resolveName(name, Object.keys(ING_GRAMS));
+    return k !== undefined ? ING_GRAMS[k] : GRAMAS_PADRAO;
   }
 
   /** Nomes dos ingredientes de uma receita, aceitando string ou {n,q,u}. */
@@ -185,7 +252,7 @@
 
     if (BONUS_ESTILO[ctx.estilo]) score += BONUS_ESTILO[ctx.estilo](recipe);
 
-    if (ings.some(ing => promoNames.some(p => looseMatch(ing, p)))) {
+    if (ings.some(ing => resolveName(ing, promoNames) !== undefined)) {
       score += PESOS.promocao;
     }
 
@@ -285,7 +352,7 @@
         qty_display: formatQty(item, buyG),
         custo: buyKg * getPrice(precos, promocoes, item),
         stockG,
-        emPromocao: (promocoes || []).some(p => looseMatch(item, p.nome.toLowerCase())),
+        emPromocao: resolveName(item, promocoes, p => p.nome) !== undefined,
         corredor
       };
     };
@@ -322,7 +389,8 @@
     PRECOS_BASE, CORREDORES, ING_GRAMS, UNIT_TO_GRAMS,
     SCORE_BASE, SCORE_BLOQUEADO, SCORE_EXCESSO_PROTEINA, PESOS, BONUS_ESTILO,
     PRECO_PADRAO, GRAMAS_PADRAO, MIN_COMPRA_G,
-    looseMatch, getStock, getPrice, ingGrams, ingNames,
+    normalize, looseMatch, isQualifiedVariant, rejectMatch, resolveName, KNOWN_INGREDIENTS,
+    getStock, getPrice, ingGrams, ingNames,
     scoreReceita, selectRecipe,
     ingredientGrams, calcNeeds, formatQty, calcShoppingList
   };
