@@ -53,7 +53,15 @@ Número de moradores, dias a planejar, refeições por dia, marmitas por dia, or
 
 HTML, CSS e JavaScript sem dependência de runtime. Capacitor 6 para o empacotamento Android. Persistência local via `localStorage`.
 
-Sem etapa de build, por decisão de projeto: o aplicativo é um arquivo único, e atualizar significa trocar o HTML e rodar `npx cap copy android`. Para o escopo deste projeto, uma cadeia de build adicionaria manutenção sem resolver nenhum problema real.
+```
+www/index.html      interface, estado e renderização
+www/js/planner.js    núcleo de decisão — pontuação e lista de compras
+tests/planner.test.js
+```
+
+O núcleo fica separado da interface por um motivo: as regras de decisão não tocam no DOM nem leem estado global — tudo entra por parâmetro, inclusive o gerador aleatório. É o que permite testá-las isoladamente e de forma determinística.
+
+Sem etapa de build, por decisão de projeto: atualizar significa trocar os arquivos de `www/` e rodar `npx cap copy android`. Para o escopo deste projeto, uma cadeia de build adicionaria manutenção sem resolver nenhum problema real.
 
 ## Números
 
@@ -61,7 +69,7 @@ Sem etapa de build, por decisão de projeto: o aplicativo é um arquivo único, 
 - base de 44 preços de referência, editável pelo usuário
 - 9 corredores de supermercado
 - 9 telas
-- 941 linhas de JavaScript
+- 50 testes automatizados
 
 ## Rodar
 
@@ -76,12 +84,32 @@ No Android Studio: **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
 
 O passo a passo completo, incluindo instalação do Android Studio, configuração do `ANDROID_HOME` e instalação no aparelho, está em [GUIA_APK.md](GUIA_APK.md).
 
+## Testes
+
+```bash
+npm test
+```
+
+Runner nativo do Node (`node --test`), sem dependência externa. Cobrem a pontuação de receitas, as restrições rígidas, a seleção entre candidatas, o cálculo da necessidade de ingredientes e a montagem da lista de compras.
+
+A pontuação aplica jitter aleatório e a seleção sorteia entre as melhores candidatas, então o gerador aleatório é injetado nos testes — com `rng = () => 0.5` o jitter vira exatamente zero e as notas passam a ser verificáveis por valor exato.
+
 ## Limitações conhecidas
 
-- **Casamento de ingredientes por substring.** A comparação entre nome de ingrediente, item de estoque e item em promoção usa `includes` nos dois sentidos, o que gera falso positivo em nomes próximos (`cebola` casa com `cebolinha`). Um identificador normalizado por ingrediente resolveria.
+- **Casamento de ingredientes por substring.** A comparação entre nome de ingrediente, item de estoque e item em promoção usa `includes` nos dois sentidos, então um item cujo nome contém o nome de outro resolve para o item errado. Como `Object.keys` preserva a ordem de inserção, quem aparece primeiro na tabela vence. Casos confirmados:
+
+  | Consulta | Resolve para | Deveria ser |
+  |---|---|---|
+  | preço de `batata doce` | preço de `batata` — R$ 5 | R$ 6 |
+  | preço de `couve` | preço de `couve-flor` — R$ 7 | R$ 5 |
+  | estoque de `alho` | encontra `alho-poró` | não encontrar |
+  | estoque de `couve` | encontra `couve-flor` | não encontrar |
+
+  Estão cobertos por testes que afirmam o comportamento errado de hoje. Quando a correção entrar, esses testes falham — e a falha é o sinal de que funcionou. A solução é um identificador normalizado por ingrediente, em vez de comparação por texto.
+
 - **Sem migração de schema.** O estado salvo em `localStorage` é mesclado no estado padrão sem validação de versão, então dados gravados por uma versão anterior podem sobreviver com campos faltando.
-- **Sem testes automatizados.** As funções de pontuação e de cálculo da lista de compras são praticamente puras e são o próximo passo natural.
 - **Preços são de referência manual**, não integrados a nenhuma fonte externa.
+- **A interface ainda não tem teste.** Renderização e manipulação de DOM seguem sem cobertura; os testes cobrem o núcleo de decisão.
 
 ## Autoria
 

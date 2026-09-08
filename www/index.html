@@ -607,6 +607,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   </div>
 </div>
 
+<script src="js/planner.js"></script>
 <script>
 // ════════════════════════════════════════════════════════
 // STATE
@@ -743,41 +744,10 @@ const DR = [
 ];
 
 // PREÇOS BASE (R$/kg ou R$/un para itens contáveis)
-const PRECOS_BASE = {
-  // Proteínas
-  'frango':14,'carne moída':22,'carne bovina':28,'linguiça':18,'peixe':25,'atum':5,
-  // Grãos
-  'arroz':6,'feijão':9,'macarrão':5,'farinha de mandioca':5,'manteiga':30,
-  // Laticínios
-  'ovos':0.9,'leite':5,'queijo':42,
-  // Raízes e tubérculos
-  'batata':5,'batata doce':6,'cenoura':5,
-  // Legumes do dia a dia
-  'abobrinha':6,'chuchu':4,'quiabo':8,'jiló':7,'pepino':5,
-  // Crucíferas
-  'brócolis':8,'couve-flor':7,'couve':5,
-  // Folhas e saladas
-  'alface':4,'rúcula':6,'agrião':5,'espinafre':6,
-  // Temperos e base
-  'tomate':8,'cebola':4,'alho':28,'azeite':30,'limão':1.2,
-  // Frutas
-  'banana':4,'maçã':9,'mamão':7,'laranja':6,'uva':18,'pera':13,'melão':5,'melancia':3,
-  // Básicos
-  'sal':3,'pimenta':20
-};
+const PRECOS_BASE = FoodPlan.PRECOS_BASE;
 
 // CORREDORES
-const CORREDORES = {
-  '🥩 Açougue':['frango','carne moída','carne bovina','linguiça','peixe'],
-  '🌾 Mercearia':['arroz','feijão','macarrão','farinha de mandioca','atum'],
-  '🥛 Laticínios':['ovos','leite','queijo','manteiga'],
-  '🥕 Raízes e Tubérculos':['batata','batata doce','cenoura','chuchu','abobrinha'],
-  '🥦 Legumes e Verduras':['brócolis','couve-flor','couve','quiabo','jiló','pepino','tomate','cebola','alho','limão'],
-  '🥗 Saladas e Folhas':['alface','rúcula','agrião','espinafre'],
-  '🍌 Frutas':['banana','maçã','mamão','laranja','uva','pera','melão','melancia'],
-  '🧂 Temperos':['sal','pimenta','azeite'],
-  '📦 Outros':[]
-};
+const CORREDORES = FoodPlan.CORREDORES;
 
 const CAT_LABELS = {proteina:'🥩 Proteína',massa:'🍝 Massa',vegetariana:'🥦 Vegetariana',economica:'💰 Econômica',fit:'💪 Fit',sopa:'🍲 Sopa'};
 const CAT_BADGES = {proteina:'br',massa:'ba',vegetariana:'bg',economica:'bb',fit:'bp',sopa:'bt'};
@@ -870,13 +840,7 @@ function savePrecos() {
   });
   save(); toast('✅ Preços salvos!');
 }
-function getPrice(item) {
-  const nm = item.toLowerCase();
-  const prom = S.promocoes.find(p=>p.nome.toLowerCase().includes(nm)||nm.includes(p.nome.toLowerCase()));
-  if(prom && prom.preco>0) return prom.preco;
-  const k = Object.keys(S.precos).find(k=>k===nm||nm.includes(k)||k.includes(nm));
-  return k ? S.precos[k] : 10;
-}
+function getPrice(item) { return FoodPlan.getPrice(S.precos, S.promocoes, item); }
 
 // ════════════════════════════════════════════════════════
 // ESTOQUE
@@ -916,17 +880,7 @@ function rmEstoque(i) {
 function clearEstoque() {
   if(confirm('Limpar todo o estoque?')) { S.estoque=[]; save(); renderEstoque(); }
 }
-function getStock(item) {
-  const nm=item.toLowerCase();
-  const found=S.estoque.find(e=>e.nome.toLowerCase()===nm||nm.includes(e.nome.toLowerCase())||e.nome.toLowerCase().includes(nm));
-  if(!found) return 0;
-  let g=found.qty;
-  if(found.unit==='kg') g*=1000;
-  else if(found.unit==='L') g*=1000;
-  else if(found.unit==='un') g*=100;
-  else if(found.unit==='dz') g*=1200;
-  return g;
-}
+function getStock(item) { return FoodPlan.getStock(S.estoque, item); }
 
 // ════════════════════════════════════════════════════════
 // PROMOÇÕES
@@ -1000,21 +954,8 @@ function renderReceitas() {
     </div>`).join('');
 }
 // Estimated grams per portion for common ingredients
-const ING_GRAMS = {
-  'frango':140,'carne moída':120,'carne bovina':140,'linguiça':80,'peixe':150,'atum':50,
-  'arroz':80,'feijão':70,'macarrão':100,'lentilha':75,
-  'ovos':55,'leite':120,'queijo':30,'manteiga':15,
-  'batata':120,'batata doce':120,'cenoura':80,'abobrinha':100,'chuchu':100,
-  'brócolis':90,'couve-flor':100,'couve':50,'quiabo':90,'jiló':80,'pepino':80,
-  'alface':40,'rúcula':30,'agrião':30,'espinafre':40,
-  'tomate':80,'cebola':50,'alho':8,'azeite':10,'limão':20,
-  'banana':100,'maçã':130,'mamão':120,
-  'sal':3,'pimenta':2,'tempero':3
-};
-function ingGrams(name) {
-  const k = Object.keys(ING_GRAMS).find(k => name.includes(k) || k.includes(name));
-  return k ? ING_GRAMS[k] : 80; // default 80g per portion
-}
+const ING_GRAMS = FoodPlan.ING_GRAMS;
+function ingGrams(name) { return FoodPlan.ingGrams(name); }
 
 function openReceitaModal(r) {
   document.getElementById('ing-list').innerHTML='';
@@ -1088,39 +1029,16 @@ function resetReceitas(){if(confirm('Restaurar receitas padrão? Receitas criada
 // ════════════════════════════════════════════════════════
 // PLANNER ENGINE
 // ════════════════════════════════════════════════════════
+// Contexto de pontuacao: reune o estado que as regras precisam ver.
+function scoreCtx(protCount, lastTwo, promoNames, blocked, estilo, lastCat) {
+  return {
+    config: S.config, estoque: S.estoque,
+    protCount, lastTwo, promoNames, blocked, estilo, lastCat
+  };
+}
+
 function scoreReceita(r, protCount, lastTwo, promoNames, blocked, estilo, lastCat) {
-  // Hard blocks
-  for(const b of blocked) {
-    const ings=(r.ings||[]).map(g=>typeof g==='object'?g.n:g);
-    if(ings.some(ing=>ing.includes(b))||r.nome.toLowerCase().includes(b)) return -9999;
-  }
-  if(estilo==='vegetariano'&&r.proteina!=='vegetal'&&r.proteina!=='ovo') return -9999;
-  // No-massa-twice rule
-  if(S.config.no_massa_twice && r.cat==='massa' && lastCat==='massa') return -9999;
-  // Max same protein
-  if((protCount[r.proteina]||0) >= (S.config.max_proteina||3)) return -500;
-
-  let score = 50;
-  // Style bonuses
-  const styleMap={economico:{fn:r=>r.custo<=8?30:r.custo<=12?10:0},proteina:{fn:r=>(r.cat==='proteina'||r.cat==='fit')?20:0},lowcarb:{fn:r=>(r.cat==='fit'||r.proteina==='vegetal'||r.proteina==='ovo')?20:0},equilibrado:{fn:r=>15},fit:{fn:r=>r.cat==='fit'?25:0},vegetariano:{fn:r=>0}};
-  if(styleMap[estilo]) score += styleMap[estilo].fn(r);
-
-  // Promo bonus
-  const ings=(r.ings||[]).map(g=>typeof g==='object'?g.n:g);
-  if(ings.some(ing=>promoNames.some(p=>ing.includes(p)||p.includes(ing)))) score+=35;
-
-  // Stock bonus
-  const stockBonus = ings.filter(ing=>getStock(ing)>0).length * 5;
-  score += Math.min(stockBonus, 25);
-
-  // Recency penalty
-  if(lastTwo.includes(r.id)) score -= 60;
-
-  // Variety: prefer different proteins
-  if((protCount[r.proteina]||0)>=2) score -= 25;
-
-  score += Math.random()*8-4; // small jitter
-  return score;
+  return FoodPlan.scoreReceita(r, scoreCtx(protCount, lastTwo, promoNames, blocked, estilo, lastCat));
 }
 
 async function generateWeek() {
@@ -1191,11 +1109,7 @@ async function generateWeek() {
 }
 
 function selectR(recipes, protCount, lastTwo, promoNames, blocked, estilo, lastCat) {
-  const scored=recipes.map(r=>({r,s:scoreReceita(r,protCount,lastTwo,promoNames,blocked,estilo,lastCat)}))
-    .filter(x=>x.s>-900).sort((a,b)=>b.s-a.s);
-  if(!scored.length) return recipes[Math.floor(Math.random()*recipes.length)];
-  const top=scored.slice(0,Math.min(3,scored.length));
-  return top[Math.floor(Math.random()*top.length)].r;
+  return FoodPlan.selectRecipe(recipes, scoreCtx(protCount, lastTwo, promoNames, blocked, estilo, lastCat));
 }
 
 function delay(ms){return new Promise(r=>setTimeout(r,ms));}
@@ -1234,75 +1148,10 @@ function confirmSwap(dayIdx, recId) {
 // SHOPPING LIST CALCULATOR
 // ════════════════════════════════════════════════════════
 function calcShoppingList() {
-  const needs={}; // {item: grams_needed}
-
-  for(const day of S.plano) {
-    const r=day.receita;
-    const scaleFactor=day.lotes*(day.porcoes/(r.porcoes||4));
-    for(const ing of (r.ings||[])) {
-      const nm=typeof ing==='object'?ing.n:ing;
-      let qg=0;
-      if(typeof ing==='object') {
-        if(ing.u==='kg') qg=ing.q*1000;
-        else if(ing.u==='L') qg=ing.q*1000;
-        else if(ing.u==='un') qg=ing.q*100;
-        else qg=ing.q;
-      } else qg=150;
-      needs[nm]=(needs[nm]||0)+qg*scaleFactor;
-    }
-  }
-
-  // Fruits module
-  if(S.config.frutas) {
-    const days=S.config.dias, ppl=S.config.moradores;
-    const tot=days*ppl;
-    const frutas={'banana':tot*0.4*120,'maçã':tot*0.35*180,'mamão':tot*0.25*200};
-    for(const [k,v] of Object.entries(frutas)) needs[k]=(needs[k]||0)+v;
-  }
-
-  // Build list grouped by corredor
-  const assigned=new Set();
-  const result=[];
-
-  for(const [corredor, items] of Object.entries(CORREDORES)) {
-    const catItems=[];
-    for(const item of items) {
-      if(!needs[item]) continue;
-      assigned.add(item);
-      const neededG=needs[item];
-      const stockG=getStock(item);
-      const buyG=Math.max(0,neededG-stockG);
-      if(buyG<10) continue;
-
-      const buyKg=buyG/1000;
-      const preco=getPrice(item);
-      const custo=buyKg*preco;
-      const qty_display=item==='ovos'?`${Math.ceil(buyG/100)} un`
-        :item==='atum'?`${Math.ceil(buyG/100)} lata${Math.ceil(buyG/100)>1?'s':''}`
-        :item==='alface'?`${Math.ceil(buyG/150)} un`
-        :buyKg>=1?`${buyKg.toFixed(1)} kg`:`${Math.round(buyG)} g`;
-
-      const emPromocao=S.promocoes.some(p=>p.nome.toLowerCase().includes(item)||item.includes(p.nome.toLowerCase()));
-      catItems.push({nome:item,buyG,buyKg,qty_display,custo,stockG,emPromocao,corredor});
-    }
-    if(catItems.length) result.push({cat:corredor,items:catItems});
-  }
-
-  // Others
-  const otherItems=[];
-  for(const [item,neededG] of Object.entries(needs)) {
-    if(assigned.has(item)) continue;
-    const stockG=getStock(item);
-    const buyG=Math.max(0,neededG-stockG);
-    if(buyG<10) continue;
-    const buyKg=buyG/1000;
-    const preco=getPrice(item);
-    const qty_display=buyKg>=1?`${buyKg.toFixed(1)} kg`:`${Math.round(buyG)} g`;
-    otherItems.push({nome:item,buyG,buyKg,qty_display,custo:buyKg*preco,stockG,emPromocao:false,corredor:'Outros'});
-  }
-  if(otherItems.length) result.push({cat:'📦 Outros',items:otherItems});
-
-  return result;
+  return FoodPlan.calcShoppingList({
+    plano: S.plano, config: S.config,
+    estoque: S.estoque, precos: S.precos, promocoes: S.promocoes
+  });
 }
 
 // ════════════════════════════════════════════════════════

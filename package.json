@@ -1,11 +1,12 @@
 {
   "name": "foodplan",
   "version": "1.0.0",
-  "description": "FoodPlan — Planejador Semanal de Refeições",
+  "description": "FoodPlan — Planejador Semanal de Refeições com otimização de custo e estoque",
   "main": "index.js",
   "scripts": {
     "build": "echo 'sem build necessário'",
-    "cap": "npx cap"
+    "cap": "npx cap",
+    "test": "node --test"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
@@ -13,5 +14,8 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
